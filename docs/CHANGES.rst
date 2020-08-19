@@ -12,6 +12,8 @@ Changelog
   "entered" as a context manager. The class still supports the context manager 
   protocol as a no-op for backwards compatibility.
 
+* Added ``--quiet`` option which tells rpmdeplint to only print error messages.
+
 1.4
 ~~~
 

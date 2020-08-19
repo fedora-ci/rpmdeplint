@@ -179,6 +179,8 @@ def main():
             'RPM packages in the context of their dependency graph.', prog='rpmdeplint')
     parser.add_argument('--debug', action='store_true',
             help='Show detailed progress messages')
+    parser.add_argument('--quiet', action='store_true',
+            help='Show only errors')
     parser.add_argument('--version', action='version', version='%(prog)s ' + version)
 
     subparsers = parser.add_subparsers(dest='subcommand', title='subcommands')
@@ -222,7 +224,7 @@ def main():
 
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.DEBUG)
-    log_to_stream(sys.stderr, level=logging.DEBUG if args.debug else logging.WARNING)
+    log_to_stream(sys.stderr, level=logging.DEBUG if args.debug else logging.ERROR if args.quiet else logging.WARNING)
 
     validate_common_dependency_analyzer_args(parser, args)
 
