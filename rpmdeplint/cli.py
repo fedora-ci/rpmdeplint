@@ -196,7 +196,7 @@ def validate_common_dependency_analyzer_args(parser, args):
         )
 
 
-def main():
+def main(args=None):
     def add_subparser(
         subcommand: str, _help: str, subcommand_func: Callable[..., ExitCode]
     ):
@@ -248,16 +248,19 @@ def main():
         "List all packages needed to satisfy dependencies",
         cmd_list_deps,
     )
-    args = parser.parse_args()
-    logging.getLogger().setLevel(logging.DEBUG)
-    log_to_stream(
-        sys.stderr,
-        level=logging.DEBUG
-        if args.debug
-        else logging.ERROR
-        if args.quiet
-        else logging.WARNING,
-    )
+    args = parser.parse_args(args)
+    if __name__ == "__main__":
+        # Only configure logging if running as an application
+        # skip if running as a library
+        logging.getLogger().setLevel(logging.DEBUG)
+        log_to_stream(
+            sys.stderr,
+            level=logging.DEBUG
+            if args.debug
+            else logging.ERROR
+            if args.quiet
+            else logging.WARNING,
+        )
 
     validate_common_dependency_analyzer_args(parser, args)
 
