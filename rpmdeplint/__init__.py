@@ -64,9 +64,17 @@ class DependencySet(object):
         nevra = str(pkg)
         self._packagedeps[nevra]['dependencies'].extend(map(str, dependencies))
         if len(problems) != 0:
-            self._packagedeps[nevra]['problems'].extend(problems)
+            all_problems = []
+            # For each problem, find all the problematic RPM "rules" which
+            # lead to the problem and also include them in
+            # the `overall_problems` description.
+            for problem in problems:
+                all_problems.append(six.text_type(problem))
+                for rule in problem.findallproblemrules():
+                    all_problems.append(rule.info().problemstr())
+            self._packagedeps[nevra]['problems'].extend(all_problems)
             self._packages_with_problems.add(nevra)
-            self._overall_problems.update(problems)
+            self._overall_problems.update(all_problems)
 
     @property
     def packages(self):
@@ -188,7 +196,7 @@ class DependencyAnalyzer(object):
             jobs = solvable.Selection().jobs(solv.Job.SOLVER_INSTALL)
             problems = solver.solve(jobs)
             if problems:
-                ds.add_package(solvable, [], [six.text_type(p) for p in problems])
+                ds.add_package(solvable, [], problems)
             else:
                 ds.add_package(solvable, solver.transaction().newsolvables(), [])
 
