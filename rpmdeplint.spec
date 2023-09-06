@@ -1,12 +1,12 @@
 
-%global upstream_version 1.4
+%global upstream_version 1.5
 
 Name:           rpmdeplint
-Version:        1.4
-Release:        1%{?dist}
+Version:        1.5
+Release:        %autorelease
 Summary:        Tool to find errors in RPM packages in the context of their dependency graph
-License:        GPLv2+
-URL:            https://pagure.io/rpmdeplint
+License:        GPL-2.0-or-later
+URL:            https://github.com/fedora-ci/rpmdeplint
 Source0:        https://files.pythonhosted.org/packages/source/r/%{name}/%{name}-%{upstream_version}.tar.gz
 BuildArch:      noarch
 
@@ -32,12 +32,9 @@ BuildRequires:  python3-hawkey
 BuildRequires:  python3-librepo
 BuildRequires:  python3-solv
 BuildRequires:  python3-rpmfluff
-Requires:       python3-six
-Requires:       python3-rpm
 Requires:       python3-hawkey
 Requires:       python3-librepo
 Requires:       python3-solv
-Requires:       python3-rpmfluff
 
 %description -n python3-%{name}
 Rpmdeplint is a tool to find errors in RPM packages in the context of their
@@ -72,3 +69,4 @@ py.test-3 rpmdeplint -k "not TestDependencyAnalyzer"
 %{python3_sitelib}/%{name}*.egg-info
 
 %changelog
+%autochangelog

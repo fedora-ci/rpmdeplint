@@ -12,14 +12,14 @@ class build(_build):
 # Note that we have some scripts which programmatically change the version
 # declared here. Do not adjust the formatting.
 name = 'rpmdeplint'
-version = '1.4'
+version = '1.5'
 release = version
 
 setup(name='rpmdeplint',
       version=version,
       description='Tool to find errors in RPM packages in the context of their dependency graph',
       long_description=open('README.rst').read(),
-      url='https://pagure.io/rpmdeplint',
+      url='https://github.com/fedora-ci/rpmdeplint',
       author='Red Hat, Inc.',
       author_email='qa-devel@lists.fedoraproject.org',
       classifiers=[
@@ -28,7 +28,11 @@ setup(name='rpmdeplint',
           'Programming Language :: Python :: 3',
       ],
       packages=['rpmdeplint', 'rpmdeplint.tests'],
-      install_requires=['setuptools', 'six'],
+      setup_requires=["setuptools", "sphinx"],
+      install_requires=["six", "rpm", "rpmfluff"],
+      # These rpms don't provide python3.11dist(hawkey|librepo|solv)
+      # https://bugzilla.redhat.com/show_bug.cgi?id=2237481
+      # install_requires+=["hawkey", "librepo", "solv"]
       tests_require=['pytest'],
       data_files = [
           ('/usr/share/man/man1', glob('build/sphinx/man/*.1')),
