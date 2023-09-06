@@ -1,0 +1,31 @@
+---
+downstream_package_name: rpmdeplint
+upstream_project_url: https://github.com/fedora-ci/rpmdeplint
+
+actions:
+  create-archive:
+    - python3 setup.py sdist --dist-dir .
+    - bash -c "ls -1t ./*.tar.gz | head -n 1"
+  get-current-version: python3 setup.py --version
+
+srpm_build_deps:
+  - python3-pip # "python3 setup.py --version" needs it
+  - python3-setuptools
+  - python3-sphinx
+
+upstream_tag_template: rpmdeplint-{version}
+
+jobs:
+  - job: copr_build
+    trigger: pull_request
+    targets:
+      - fedora-all
+      - epel-9
+  - job: copr_build
+    trigger: commit
+    branch: main
+    targets:
+      - fedora-all
+      - epel-9
+    owner: "@osci"
+    project: rpmdeplint
