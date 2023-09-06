@@ -5,7 +5,8 @@
 
 import shutil
 
-import rpmfluff
+from rpmfluff import SimpleRpmBuild
+from rpmfluff.yumrepobuild import YumRepoBuild
 
 from data_setup import run_rpmdeplint
 
@@ -14,15 +15,15 @@ def test_catches_soname_change(request, dir_server):
     # This is the classic mistake repoclosure is supposed to find... the
     # updated package has changed its soname, causing some other package's
     # dependencies to become unresolvable.
-    p_older = rpmfluff.SimpleRpmBuild("a", "4.0", "1", ["i386"])
+    p_older = SimpleRpmBuild("a", "4.0", "1", ["i386"])
     p_older.add_provides("libfoo.so.4")
-    p_depending = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    p_depending = SimpleRpmBuild("b", "0.1", "1", ["i386"])
     p_depending.add_requires("libfoo.so.4")
-    baserepo = rpmfluff.YumRepoBuild([p_older, p_depending])
+    baserepo = YumRepoBuild([p_older, p_depending])
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    p_newer = rpmfluff.SimpleRpmBuild("a", "5.0", "1", ["i386"])
+    p_newer = SimpleRpmBuild("a", "5.0", "1", ["i386"])
     p_newer.add_provides("libfoo.so.5")
     p_newer.make()
 
@@ -52,15 +53,15 @@ def test_catches_soname_change(request, dir_server):
 def test_catches_soname_change_with_package_rename(request, dir_server):
     # Slightly more complicated version of the above, where the old provider is
     # not being updated but rather obsoleted.
-    p_older = rpmfluff.SimpleRpmBuild("foolib", "4.0", "1", ["i386"])
+    p_older = SimpleRpmBuild("foolib", "4.0", "1", ["i386"])
     p_older.add_provides("libfoo.so.4")
-    p_depending = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    p_depending = SimpleRpmBuild("b", "0.1", "1", ["i386"])
     p_depending.add_requires("libfoo.so.4")
-    baserepo = rpmfluff.YumRepoBuild([p_older, p_depending])
+    baserepo = YumRepoBuild([p_older, p_depending])
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    p_newer = rpmfluff.SimpleRpmBuild("libfoo", "5.0", "1", ["i386"])
+    p_newer = SimpleRpmBuild("libfoo", "5.0", "1", ["i386"])
     p_newer.add_obsoletes("foolib < 5.0-1")
     p_newer.add_provides("libfoo.so.5")
     p_newer.make()
@@ -91,12 +92,12 @@ def test_catches_soname_change_with_package_rename(request, dir_server):
 def test_ignores_dependency_problems_in_packages_under_test(request, dir_server):
     # The check-sat command will find and report these problems, it would be
     # redundant for check-repoclosure to also report the same problems.
-    p2 = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
-    baserepo = rpmfluff.YumRepoBuild((p2,))
+    p2 = SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    baserepo = YumRepoBuild((p2,))
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386"])
+    p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
     p1.add_requires("doesnotexist")
     p1.make()
 
@@ -123,18 +124,18 @@ def test_ignores_problems_in_older_packages(request, dir_server):
     # We only care if the *latest* version of each package in the repos is
     # satisfied. If there are dependency problems with an older version, it is
     # irrelevant because nobody will be installing it anyway.
-    p_older = rpmfluff.SimpleRpmBuild("a", "4.0", "1", ["i386"])
+    p_older = SimpleRpmBuild("a", "4.0", "1", ["i386"])
     p_older.add_provides("libfoo.so.4")
     p_older.add_provides("libfoo.so.5")
-    p_older_depending = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    p_older_depending = SimpleRpmBuild("b", "0.1", "1", ["i386"])
     p_older_depending.add_requires("libfoo.so.4")
-    p_newer_depending = rpmfluff.SimpleRpmBuild("b", "0.2", "1", ["i386"])
+    p_newer_depending = SimpleRpmBuild("b", "0.2", "1", ["i386"])
     p_newer_depending.add_requires("libfoo.so.5")
-    baserepo = rpmfluff.YumRepoBuild([p_older, p_older_depending, p_newer_depending])
+    baserepo = YumRepoBuild([p_older, p_older_depending, p_newer_depending])
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    p_newer = rpmfluff.SimpleRpmBuild("a", "5.0", "1", ["i386"])
+    p_newer = SimpleRpmBuild("a", "5.0", "1", ["i386"])
     p_newer.add_provides("libfoo.so.5")
     p_newer.make()
 
@@ -161,19 +162,19 @@ def test_ignores_problems_in_older_packages(request, dir_server):
 def test_ignores_problems_in_obsoleted_packages(request, dir_server):
     # As above, we also don't care about any dependency problems in packages
     # that have been obsoleted.
-    p_older = rpmfluff.SimpleRpmBuild("a", "4.0", "1", ["i386"])
+    p_older = SimpleRpmBuild("a", "4.0", "1", ["i386"])
     p_older.add_provides("libfoo.so.4")
     p_older.add_provides("libfoo.so.5")
-    p_obsolete_depending = rpmfluff.SimpleRpmBuild("foofouruser", "1.0", "1", ["i386"])
+    p_obsolete_depending = SimpleRpmBuild("foofouruser", "1.0", "1", ["i386"])
     p_obsolete_depending.add_requires("libfoo.so.4")
-    p_newer_depending = rpmfluff.SimpleRpmBuild("foofiveuser", "0.1", "1", ["i386"])
+    p_newer_depending = SimpleRpmBuild("foofiveuser", "0.1", "1", ["i386"])
     p_newer_depending.add_requires("libfoo.so.5")
     p_newer_depending.add_obsoletes("foofouruser <= 1.0-1")
-    baserepo = rpmfluff.YumRepoBuild([p_older, p_obsolete_depending, p_newer_depending])
+    baserepo = YumRepoBuild([p_older, p_obsolete_depending, p_newer_depending])
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    p_newer = rpmfluff.SimpleRpmBuild("a", "5.0", "1", ["i386"])
+    p_newer = SimpleRpmBuild("a", "5.0", "1", ["i386"])
     p_newer.add_provides("libfoo.so.5")
     p_newer.make()
 
@@ -201,13 +202,13 @@ def test_warns_on_preexisting_repoclosure_problems(request, dir_server):
     # If the repos have some existing dependency problems, we don't want that
     # to be an error -- otherwise a bad repo will make it impossible to get any
     # results until the problem is fixed.
-    p2 = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    p2 = SimpleRpmBuild("b", "0.1", "1", ["i386"])
     p2.add_requires("doesnotexist")
-    baserepo = rpmfluff.YumRepoBuild((p2,))
+    baserepo = YumRepoBuild((p2,))
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386"])
+    p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
     p1.make()
 
     def cleanUp():
@@ -233,16 +234,16 @@ def test_warns_on_preexisting_repoclosure_problems(request, dir_server):
 
 
 def test_works_on_different_platform_to_current(request, dir_server):
-    grep = rpmfluff.SimpleRpmBuild("grep", "2.20", "3.el6", ["ppc64"])
+    grep = SimpleRpmBuild("grep", "2.20", "3.el6", ["ppc64"])
 
-    needs_grep = rpmfluff.SimpleRpmBuild("search-tool-5000", "1.0", "3.el6", ["ppc64"])
+    needs_grep = SimpleRpmBuild("search-tool-5000", "1.0", "3.el6", ["ppc64"])
     needs_grep.add_requires("grep = 2.20-3.el6")
 
-    baserepo = rpmfluff.YumRepoBuild((grep, needs_grep))
+    baserepo = YumRepoBuild((grep, needs_grep))
     baserepo.make("ppc64")
     dir_server.basepath = baserepo.repoDir
 
-    package_to_test = rpmfluff.SimpleRpmBuild("test-tool", "10", "3.el6", ["ppc64"])
+    package_to_test = SimpleRpmBuild("test-tool", "10", "3.el6", ["ppc64"])
     package_to_test.make()
 
     def cleanUp():
@@ -268,15 +269,15 @@ def test_works_on_different_platform_to_current(request, dir_server):
 
 
 def test_arch_set_manually_is_passed_to_sack(request, dir_server):
-    grep = rpmfluff.SimpleRpmBuild("grep", "2.20", "3.el6", ["i686"])
+    grep = SimpleRpmBuild("grep", "2.20", "3.el6", ["i686"])
 
-    needs_grep = rpmfluff.SimpleRpmBuild("search-tool-5000", "1.0", "3.el6", ["i686"])
+    needs_grep = SimpleRpmBuild("search-tool-5000", "1.0", "3.el6", ["i686"])
     needs_grep.add_requires("grep = 2.20-3.el6")
 
-    package_to_test = rpmfluff.SimpleRpmBuild("test-tool", "10", "3.el6", ["i586"])
+    package_to_test = SimpleRpmBuild("test-tool", "10", "3.el6", ["i586"])
     package_to_test.make()
 
-    baserepo = rpmfluff.YumRepoBuild((grep, needs_grep))
+    baserepo = YumRepoBuild((grep, needs_grep))
     baserepo.make("i686")
     dir_server.basepath = baserepo.repoDir
 

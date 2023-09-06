@@ -30,11 +30,11 @@ setup(
     python_requires=">=3.8",
     packages=["rpmdeplint", "rpmdeplint.tests"],
     setup_requires=["setuptools", "sphinx"],
-    install_requires=["six", "rpm", "rpmfluff"],
+    install_requires=["six", "rpm"],
     # These rpms don't provide python3.11dist(hawkey|librepo|solv)
     # https://bugzilla.redhat.com/show_bug.cgi?id=2237481
     # install_requires+=["hawkey", "librepo", "solv"]
-    tests_require=["pytest"],
+    tests_require=["pytest", "rpmfluff"],
     data_files=[
         ("/usr/share/man/man1", glob("build/sphinx/man/*.1")),
     ],

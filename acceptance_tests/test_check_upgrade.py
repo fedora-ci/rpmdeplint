@@ -5,19 +5,20 @@
 
 import shutil
 
-import rpmfluff
+from rpmfluff import SimpleRpmBuild
+from rpmfluff.yumrepobuild import YumRepoBuild
 
 from data_setup import run_rpmdeplint
 
 
 def test_finds_newer_version_in_repo(request, dir_server):
-    p2 = rpmfluff.SimpleRpmBuild("anaconda", "19.31.123", "1.el7", ["noarch"])
+    p2 = SimpleRpmBuild("anaconda", "19.31.123", "1.el7", ["noarch"])
     p2.add_subpackage("user-help")
-    baserepo = rpmfluff.YumRepoBuild([p2])
+    baserepo = YumRepoBuild([p2])
     baserepo.make("noarch")
     dir_server.basepath = baserepo.repoDir
 
-    p1 = rpmfluff.SimpleRpmBuild("anaconda-user-help", "7.2.2", "1.el7", ["noarch"])
+    p1 = SimpleRpmBuild("anaconda-user-help", "7.2.2", "1.el7", ["noarch"])
     p1.make()
 
     def cleanUp():
@@ -45,13 +46,13 @@ def test_finds_newer_version_in_repo(request, dir_server):
 
 
 def test_finds_obsoleting_package_in_repo(request, dir_server):
-    p2 = rpmfluff.SimpleRpmBuild("b", "0.1", "2", ["i386"])
+    p2 = SimpleRpmBuild("b", "0.1", "2", ["i386"])
     p2.add_obsoletes("a < 0.1-2")
-    baserepo = rpmfluff.YumRepoBuild([p2])
+    baserepo = YumRepoBuild([p2])
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386"])
+    p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
     p1.make()
 
     def cleanUp():
@@ -77,13 +78,13 @@ def test_finds_obsoleting_package_in_repo(request, dir_server):
 
 
 def test_epoch(request, dir_server):
-    p2 = rpmfluff.SimpleRpmBuild("anaconda", "19.31.123", "1.el7", ["noarch"])
+    p2 = SimpleRpmBuild("anaconda", "19.31.123", "1.el7", ["noarch"])
     p2.add_subpackage("user-help")
-    baserepo = rpmfluff.YumRepoBuild([p2])
+    baserepo = YumRepoBuild([p2])
     baserepo.make("noarch")
     dir_server.basepath = baserepo.repoDir
 
-    p1 = rpmfluff.SimpleRpmBuild("anaconda-user-help", "7.3.2", "1.el7", ["noarch"])
+    p1 = SimpleRpmBuild("anaconda-user-help", "7.3.2", "1.el7", ["noarch"])
     p1.epoch = 1
     p1.make()
 

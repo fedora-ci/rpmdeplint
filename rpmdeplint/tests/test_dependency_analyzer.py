@@ -5,15 +5,11 @@
 
 from unittest import TestCase
 
+from rpmfluff import SimpleRpmBuild
+from rpmfluff.yumrepobuild import YumRepoBuild
+
 from rpmdeplint import DependencyAnalyzer
 from rpmdeplint.repodata import Repo
-
-try:
-    from rpmfluff import SimpleRpmBuild
-    from rpmfluff import YumRepoBuild
-except ImportError:
-    from rpmfluff.rpmbuild import SimpleRpmBuild
-    from rpmfluff.yumrepobuild import YumRepoBuild
 
 
 class TestDependencyAnalyzer(TestCase):

@@ -5,18 +5,19 @@
 
 import shutil
 
-import rpmfluff
+from rpmfluff import SimpleRpmBuild
+from rpmfluff.yumrepobuild import YumRepoBuild
 
 from data_setup import run_rpmdeplint
 
 
 def test_shows_error_for_rpms(request, dir_server):
-    p2 = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
-    baserepo = rpmfluff.YumRepoBuild((p2,))
+    p2 = SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    baserepo = YumRepoBuild((p2,))
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386"])
+    p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
     p1.add_requires("doesnotexist")
     p1.make()
 

@@ -5,18 +5,19 @@
 
 import shutil
 
-import rpmfluff
+from rpmfluff import SimpleRpmBuild
+from rpmfluff.yumrepobuild import YumRepoBuild
 
 from data_setup import run_rpmdeplint
 
 
 def test_lists_dependencies_for_rpms(request, dir_server):
-    p2 = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
-    baserepo = rpmfluff.YumRepoBuild((p2,))
+    p2 = SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    baserepo = YumRepoBuild((p2,))
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386"])
+    p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
     p1.add_requires("b")
     p1.make()
 
@@ -43,11 +44,11 @@ def test_lists_dependencies_for_rpms(request, dir_server):
 
 
 def test_lists_dependencies_for_rpms_served_from_filesystem(request):
-    p2 = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
-    baserepo = rpmfluff.YumRepoBuild((p2,))
+    p2 = SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    baserepo = YumRepoBuild((p2,))
     baserepo.make("i386")
 
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386"])
+    p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
     p1.add_requires("doesnotexist")
     p1.make()
 
@@ -70,12 +71,12 @@ def test_lists_dependencies_for_rpms_served_from_filesystem(request):
 
 
 def test_errors_out_for_unsatisfiable_deps(request, dir_server):
-    p2 = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
-    baserepo = rpmfluff.YumRepoBuild((p2,))
+    p2 = SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    baserepo = YumRepoBuild((p2,))
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386"])
+    p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
     p1.add_requires("doesnotexist")
     p1.make()
 
@@ -99,7 +100,7 @@ def test_errors_out_for_unsatisfiable_deps(request, dir_server):
 
 def test_rpmdeplint_errors_on_unavailble_url(request):
     url = "http://example.test"
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386"])
+    p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
     p1.make()
 
     def cleanUp():
@@ -127,8 +128,8 @@ def test_erroneous_cli_input_errors():
 
 # https://bugzilla.redhat.com/show_bug.cgi?id=1382531
 def test_handles_invalid_rpm_without_crashing(request, dir_server, tmpdir):
-    p2 = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
-    baserepo = rpmfluff.YumRepoBuild([p2])
+    p2 = SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    baserepo = YumRepoBuild([p2])
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 

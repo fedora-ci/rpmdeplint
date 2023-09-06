@@ -7,7 +7,8 @@ import os
 import shutil
 import time
 
-import rpmfluff
+from rpmfluff import SimpleRpmBuild, SourceFile
+from rpmfluff.yumrepobuild import YumRepoBuild
 
 from data_setup import run_rpmdeplint
 from rpmdeplint.repodata import cache_base_path
@@ -31,33 +32,33 @@ def expected_cache_path(repodir, suffix, old=False):
 
 
 def test_finds_all_problems(request, dir_server):
-    p_newer = rpmfluff.SimpleRpmBuild("a", "5.0", "1", ["i386"])
-    p_with_content = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    p_newer = SimpleRpmBuild("a", "5.0", "1", ["i386"])
+    p_with_content = SimpleRpmBuild("b", "0.1", "1", ["i386"])
     p_with_content.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "content\n"),
+        sourceFile=SourceFile("thing", "content\n"),
     )
-    p_old_soname = rpmfluff.SimpleRpmBuild("c", "0.1", "1", ["i386"])
+    p_old_soname = SimpleRpmBuild("c", "0.1", "1", ["i386"])
     p_old_soname.add_provides("libfoo.so.4")
-    p_depending = rpmfluff.SimpleRpmBuild("d", "0.1", "1", ["i386"])
+    p_depending = SimpleRpmBuild("d", "0.1", "1", ["i386"])
     p_depending.add_requires("libfoo.so.4")
     repo_packages = [p_newer, p_with_content, p_old_soname, p_depending]
-    baserepo = rpmfluff.YumRepoBuild(repo_packages)
+    baserepo = YumRepoBuild(repo_packages)
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    p_older = rpmfluff.SimpleRpmBuild("a", "4.0", "1", ["i386"])
+    p_older = SimpleRpmBuild("a", "4.0", "1", ["i386"])
     p_older.make()
-    p_broken = rpmfluff.SimpleRpmBuild("e", "1.0", "1", ["i386"])
+    p_broken = SimpleRpmBuild("e", "1.0", "1", ["i386"])
     p_broken.add_requires("doesnotexist")
     p_broken.make()
-    p_with_different_content = rpmfluff.SimpleRpmBuild("f", "0.1", "1", ["i386"])
+    p_with_different_content = SimpleRpmBuild("f", "0.1", "1", ["i386"])
     p_with_different_content.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "different content\n"),
+        sourceFile=SourceFile("thing", "different content\n"),
     )
     p_with_different_content.make()
-    p_soname_changed = rpmfluff.SimpleRpmBuild("c", "0.2", "1", ["i386"])
+    p_soname_changed = SimpleRpmBuild("c", "0.2", "1", ["i386"])
     p_soname_changed.add_provides("libfoo.so.5")
     p_soname_changed.make()
     test_packages = [p_older, p_broken, p_with_different_content, p_soname_changed]
@@ -89,14 +90,14 @@ def test_finds_all_problems(request, dir_server):
 def test_guesses_arch_when_combined_with_noarch_package(request, dir_server):
     # A more realistic case is an archful package with a noarch subpackage,
     # but rpmfluff currently can't produce that.
-    p_noarch = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["noarch"])
+    p_noarch = SimpleRpmBuild("a", "0.1", "1", ["noarch"])
     p_noarch.add_requires("libfoo.so.4")
     p_noarch.make()
-    p_archful = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    p_archful = SimpleRpmBuild("b", "0.1", "1", ["i386"])
     p_archful.add_requires("libfoo.so.4")
     p_archful.make()
 
-    baserepo = rpmfluff.YumRepoBuild([])
+    baserepo = YumRepoBuild([])
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
@@ -125,8 +126,8 @@ def test_guesses_arch_when_combined_with_noarch_package(request, dir_server):
 
 
 def test_cache_is_used_when_available(request, dir_server):
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386"])
-    baserepo = rpmfluff.YumRepoBuild((p1,))
+    p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
+    baserepo = YumRepoBuild((p1,))
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
@@ -180,8 +181,8 @@ def test_cache_is_used_when_available(request, dir_server):
 def test_cache_doesnt_grow_unboundedly(request, dir_server):
     os.environ["RPMDEPLINT_EXPIRY_SECONDS"] = "1"
 
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386"])
-    firstrepo = rpmfluff.YumRepoBuild((p1,))
+    p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
+    firstrepo = YumRepoBuild((p1,))
     firstrepo.make("i386")
     dir_server.basepath = firstrepo.repoDir
 
@@ -209,8 +210,8 @@ def test_cache_doesnt_grow_unboundedly(request, dir_server):
     assert os.path.exists(first_primary_cache_path)
     assert os.path.exists(first_filelists_cache_path)
 
-    p2 = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
-    secondrepo = rpmfluff.YumRepoBuild((p2,))
+    p2 = SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    secondrepo = YumRepoBuild((p2,))
     secondrepo.make("i386")
     dir_server.basepath = secondrepo.repoDir
 
@@ -248,8 +249,8 @@ def test_cache_doesnt_grow_unboundedly(request, dir_server):
 
 
 def test_migrates_old_cache_layout(request, dir_server):
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386"])
-    repo = rpmfluff.YumRepoBuild([p1])
+    p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
+    repo = YumRepoBuild([p1])
     repo.make("i386")
     dir_server.basepath = repo.repoDir
 
@@ -283,7 +284,7 @@ def test_migrates_old_cache_layout(request, dir_server):
 
 def test_prints_error_on_repo_download_failure(request, dir_server):
     # Specifically we don't want an unhandled exception, because that triggers abrt.
-    test_tool_rpm = rpmfluff.SimpleRpmBuild("test-tool", "10", "3.el6", ["x86_64"])
+    test_tool_rpm = SimpleRpmBuild("test-tool", "10", "3.el6", ["x86_64"])
     test_tool_rpm.make()
 
     def cleanUp():
@@ -310,9 +311,9 @@ def test_prints_error_on_repodata_file_download_failure(request, dir_server):
     # primary.xml.gz is broken. We test this case specifically, because the
     # code paths for fetching repomd.xml and the other repodata files are
     # separate.
-    p1 = rpmfluff.SimpleRpmBuild("test-tool", "10", "3.el6", ["x86_64"])
+    p1 = SimpleRpmBuild("test-tool", "10", "3.el6", ["x86_64"])
     p1.add_requires("unsatisfied")
-    repo = rpmfluff.YumRepoBuild([p1])
+    repo = YumRepoBuild([p1])
     repo.make("x86_64")
     for repodata_filename in os.listdir(os.path.join(repo.repoDir, "repodata")):
         if "primary" in repodata_filename:

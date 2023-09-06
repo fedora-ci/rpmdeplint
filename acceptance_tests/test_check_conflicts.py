@@ -8,25 +8,26 @@ import shutil
 import subprocess
 
 import rpm
-import rpmfluff
+from rpmfluff import SimpleRpmBuild, SourceFile
+from rpmfluff.yumrepobuild import YumRepoBuild
 
 from data_setup import run_rpmdeplint
 
 
 def test_finds_undeclared_file_conflict(request, dir_server):
-    p2 = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    p2 = SimpleRpmBuild("b", "0.1", "1", ["i386"])
     p2.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "content\n"),
+        sourceFile=SourceFile("thing", "content\n"),
     )
-    baserepo = rpmfluff.YumRepoBuild([p2])
+    baserepo = YumRepoBuild([p2])
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386"])
+    p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
     p1.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "different content\n"),
+        sourceFile=SourceFile("thing", "different content\n"),
     )
     p1.make()
 
@@ -53,18 +54,18 @@ def test_finds_undeclared_file_conflict(request, dir_server):
 
 
 def test_finds_undeclared_file_conflict_with_repo_on_local_filesystem(request):
-    p2 = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    p2 = SimpleRpmBuild("b", "0.1", "1", ["i386"])
     p2.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "content\n"),
+        sourceFile=SourceFile("thing", "content\n"),
     )
-    baserepo = rpmfluff.YumRepoBuild([p2])
+    baserepo = YumRepoBuild([p2])
     baserepo.make("i386")
 
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386"])
+    p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
     p1.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "different content\n"),
+        sourceFile=SourceFile("thing", "different content\n"),
     )
     p1.make()
 
@@ -91,19 +92,19 @@ def test_finds_undeclared_file_conflict_with_repo_on_local_filesystem(request):
 
 
 def test_package_does_not_conflict_with_earlier_version_of_itself(request, dir_server):
-    p2 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386"])
+    p2 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
     p2.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "content\n"),
+        sourceFile=SourceFile("thing", "content\n"),
     )
-    baserepo = rpmfluff.YumRepoBuild([p2])
+    baserepo = YumRepoBuild([p2])
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "2", ["i386"])
+    p1 = SimpleRpmBuild("a", "0.1", "2", ["i386"])
     p1.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "different content\n"),
+        sourceFile=SourceFile("thing", "different content\n"),
     )
     p1.make()
 
@@ -130,20 +131,20 @@ def test_conflict_is_ignored_for_rpm_level_conflicts(request, dir_server):
     # Conflicts declaration at the RPM level, is discouraged by Fedora but
     # sometimes necessary.
     # https://fedoraproject.org/wiki/Packaging:Conflicts
-    p2 = rpmfluff.SimpleRpmBuild("mysql", "0.1", "1", ["i386"])
+    p2 = SimpleRpmBuild("mysql", "0.1", "1", ["i386"])
     p2.add_installed_file(
         installPath="usr/bin/mysql",
-        sourceFile=rpmfluff.SourceFile("mysql", b"\177ELF-mysql", encoding=None),
+        sourceFile=SourceFile("mysql", b"\177ELF-mysql", encoding=None),
     )
-    baserepo = rpmfluff.YumRepoBuild([p2])
+    baserepo = YumRepoBuild([p2])
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    p1 = rpmfluff.SimpleRpmBuild("mariadb", "0.1", "1", ["i386"])
+    p1 = SimpleRpmBuild("mariadb", "0.1", "1", ["i386"])
     p1.add_conflicts("mysql")
     p1.add_installed_file(
         installPath="usr/bin/mysql",
-        sourceFile=rpmfluff.SourceFile("mysql", b"\177ELF-mariadb", encoding=None),
+        sourceFile=SourceFile("mysql", b"\177ELF-mariadb", encoding=None),
     )
     p1.make()
 
@@ -169,19 +170,19 @@ def test_conflict_is_ignored_if_files_match(request, dir_server):
     # RPM allows multiple packages to own the same file if the file compares equal
     # according to rpmfilesCompare() in both packages -- that is, the same
     # owner, group, mode, and contents.
-    p2 = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    p2 = SimpleRpmBuild("b", "0.1", "1", ["i386"])
     p2.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "same content\n"),
+        sourceFile=SourceFile("thing", "same content\n"),
     )
-    baserepo = rpmfluff.YumRepoBuild([p2])
+    baserepo = YumRepoBuild([p2])
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386"])
+    p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
     p1.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "same content\n"),
+        sourceFile=SourceFile("thing", "same content\n"),
     )
     p1.make()
 
@@ -204,35 +205,35 @@ def test_conflict_is_ignored_if_files_match(request, dir_server):
 
 
 def test_conflict_not_ignored_if_contents_match_but_perms_differ(request, dir_server):
-    basepackage = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["i386"])
+    basepackage = SimpleRpmBuild("b", "0.1", "1", ["i386"])
     basepackage.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "content\n"),
+        sourceFile=SourceFile("thing", "content\n"),
     )
-    baserepo = rpmfluff.YumRepoBuild([basepackage])
+    baserepo = YumRepoBuild([basepackage])
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    different_mode = rpmfluff.SimpleRpmBuild("x", "0.1", "1", ["i386"])
+    different_mode = SimpleRpmBuild("x", "0.1", "1", ["i386"])
     different_mode.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "content\n"),
+        sourceFile=SourceFile("thing", "content\n"),
         mode="0600",
     )
     different_mode.make()
 
-    different_owner = rpmfluff.SimpleRpmBuild("y", "0.1", "1", ["i386"])
+    different_owner = SimpleRpmBuild("y", "0.1", "1", ["i386"])
     different_owner.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "content\n"),
+        sourceFile=SourceFile("thing", "content\n"),
         owner="apache",
     )
     different_owner.make()
 
-    different_group = rpmfluff.SimpleRpmBuild("z", "0.1", "1", ["i386"])
+    different_group = SimpleRpmBuild("z", "0.1", "1", ["i386"])
     different_group.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "content\n"),
+        sourceFile=SourceFile("thing", "content\n"),
         group="apache",
     )
     different_group.make()
@@ -276,13 +277,13 @@ def test_conflict_is_ignored_if_file_colors_are_different(request, dir_server):
     # but the file color is different in each, the preferred color wins (and
     # there is no conflict). This lets both .i386 and .x86_64 packages own
     # /bin/bash while installing only the .x86_64 version.
-    p2 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["i386", "x86_64"])
+    p2 = SimpleRpmBuild("a", "0.1", "1", ["i386", "x86_64"])
     p2.add_simple_compilation(installPath="usr/bin/thing")
-    baserepo = rpmfluff.YumRepoBuild([p2])
+    baserepo = YumRepoBuild([p2])
     baserepo.make("i386", "x86_64")
     dir_server.basepath = baserepo.repoDir
 
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.2", "1", ["i386", "x86_64"])
+    p1 = SimpleRpmBuild("a", "0.2", "1", ["i386", "x86_64"])
     p1.add_simple_compilation(installPath="usr/bin/thing")
     p1.make()
 
@@ -323,15 +324,15 @@ def test_conflict_is_ignored_if_file_colors_are_different(request, dir_server):
 
 # https://bugzilla.redhat.com/show_bug.cgi?id=1353757
 def test_does_not_fail_with_signed_rpms(request, dir_server):
-    p2 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["x86_64"])
+    p2 = SimpleRpmBuild("a", "0.1", "1", ["x86_64"])
     # Add an undeclared conflict to make rpmdeplint loading the rpms into a
     # transaction. That would usually trigger a rpm signature verification.
     p2.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "content\n"),
+        sourceFile=SourceFile("thing", "content\n"),
         mode="0600",
     )
-    baserepo = rpmfluff.YumRepoBuild([p2])
+    baserepo = YumRepoBuild([p2])
     baserepo.make("x86_64")
     dir_server.basepath = baserepo.repoDir
 
@@ -355,26 +356,24 @@ def test_does_not_fail_with_signed_rpms(request, dir_server):
 
 # https://bugzilla.redhat.com/show_bug.cgi?id=1412910
 def test_conflict_is_ignored_if_not_installable_concurrently(request, dir_server):
-    glib_26 = rpmfluff.SimpleRpmBuild("glib", "2.26", "1.el6", ["i686"])
+    glib_26 = SimpleRpmBuild("glib", "2.26", "1.el6", ["i686"])
     glib_26.add_devel_subpackage()
     glib_26.add_installed_file(
         installPath="usr/share/gtk-doc/html/gio/annotation-glossary.html",
-        sourceFile=rpmfluff.SourceFile("annotation-glossary.html", "something\n"),
+        sourceFile=SourceFile("annotation-glossary.html", "something\n"),
         subpackageSuffix="devel",
     )
-    glib_28 = rpmfluff.SimpleRpmBuild("glib", "2.28", "8.el6", ["i686"])
+    glib_28 = SimpleRpmBuild("glib", "2.28", "8.el6", ["i686"])
     glib_doc = glib_28.add_subpackage("doc")
     glib_doc.add_requires("glib = 2.28-8.el6")
     glib_28.add_installed_file(
         installPath="usr/share/gtk-doc/html/gio/annotation-glossary.html",
-        sourceFile=rpmfluff.SourceFile(
-            "annotation-glossary.html", "some other content\n"
-        ),
+        sourceFile=SourceFile("annotation-glossary.html", "some other content\n"),
         subpackageSuffix="doc",
     )
     glib_28.make()
 
-    repo = rpmfluff.YumRepoBuild((glib_26,))
+    repo = YumRepoBuild((glib_26,))
     repo.make("i686")
     dir_server.basepath = repo.repoDir
 
@@ -401,21 +400,21 @@ def test_conflict_is_ignored_if_not_installable_concurrently(request, dir_server
 
 # https://bugzilla.redhat.com/show_bug.cgi?id=1465734
 def test_finds_conflicts_in_installonly_packages(request, dir_server):
-    kernel1 = rpmfluff.SimpleRpmBuild("kernel-core", "0.1", "1", ["i386"])
+    kernel1 = SimpleRpmBuild("kernel-core", "0.1", "1", ["i386"])
     kernel1.add_installed_file(
         installPath="usr/share/licenses/kernel-core/COPYING",
-        sourceFile=rpmfluff.SourceFile("COPYING", "content\n"),
+        sourceFile=SourceFile("COPYING", "content\n"),
     )
     # The modern mechanism for telling DNF a package is installonly is to add this virtual provide.
     kernel1.add_provides("installonlypkg(kernel)")
-    baserepo = rpmfluff.YumRepoBuild([kernel1])
+    baserepo = YumRepoBuild([kernel1])
     baserepo.make("i386")
     dir_server.basepath = baserepo.repoDir
 
-    kernel2 = rpmfluff.SimpleRpmBuild("kernel-core", "0.2", "1", ["i386"])
+    kernel2 = SimpleRpmBuild("kernel-core", "0.2", "1", ["i386"])
     kernel2.add_installed_file(
         installPath="usr/share/licenses/kernel-core/COPYING",
-        sourceFile=rpmfluff.SourceFile("COPYING", "different content\n"),
+        sourceFile=SourceFile("COPYING", "different content\n"),
     )
     kernel2.add_provides("installonlypkg(kernel)")
     kernel2.make()
@@ -446,25 +445,25 @@ def test_finds_conflicts_in_installonly_packages(request, dir_server):
 # https://bugzilla.redhat.com/show_bug.cgi?id=1502458
 def test_finds_conflict_against_older_subpackage(request, dir_server):
     conflicting_path = "usr/share/man/man1/vim.1.gz"
-    oldvim = rpmfluff.SimpleRpmBuild("vim", "7.4.1989", "2", ["x86_64"])
+    oldvim = SimpleRpmBuild("vim", "7.4.1989", "2", ["x86_64"])
     oldvim.add_subpackage("common")
     oldvim.add_subpackage("minimal")
     oldvim.add_installed_file(
         installPath=conflicting_path,
-        sourceFile=rpmfluff.SourceFile("vim.1", "oldcontent\n"),
+        sourceFile=SourceFile("vim.1", "oldcontent\n"),
         subpackageSuffix="common",
     )
     oldvim.get_subpackage("minimal").section_files += "/%s\n" % conflicting_path
-    baserepo = rpmfluff.YumRepoBuild([oldvim])
+    baserepo = YumRepoBuild([oldvim])
     baserepo.make("x86_64")
     dir_server.basepath = baserepo.repoDir
 
-    newvim = rpmfluff.SimpleRpmBuild("vim", "8.0.118", "1", ["x86_64"])
+    newvim = SimpleRpmBuild("vim", "8.0.118", "1", ["x86_64"])
     newvim.add_subpackage("common")
     newvim.add_subpackage("minimal")
     newvim.add_installed_file(
         installPath=conflicting_path,
-        sourceFile=rpmfluff.SourceFile("vim.1", "newcontent\n"),
+        sourceFile=SourceFile("vim.1", "newcontent\n"),
         subpackageSuffix="common",
     )
     newvim.get_subpackage("minimal").section_files += "/%s\n" % conflicting_path
@@ -498,10 +497,10 @@ def test_finds_conflict_against_older_subpackage(request, dir_server):
 
 # https://bugzilla.redhat.com/show_bug.cgi?id=1448768
 def test_obeys_xml_base_when_downloading_packages(request, tmpdir, dir_server):
-    p2 = rpmfluff.SimpleRpmBuild("b", "0.1", "1", ["x86_64"])
+    p2 = SimpleRpmBuild("b", "0.1", "1", ["x86_64"])
     p2.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "same content\n"),
+        sourceFile=SourceFile("thing", "same content\n"),
     )
     p2.make()
 
@@ -520,10 +519,10 @@ def test_obeys_xml_base_when_downloading_packages(request, tmpdir, dir_server):
         cwd=tmpdir.mkdir("therepo").strpath,
     )
 
-    p1 = rpmfluff.SimpleRpmBuild("a", "0.1", "1", ["x86_64"])
+    p1 = SimpleRpmBuild("a", "0.1", "1", ["x86_64"])
     p1.add_installed_file(
         installPath="usr/share/thing",
-        sourceFile=rpmfluff.SourceFile("thing", "same content\n"),
+        sourceFile=SourceFile("thing", "same content\n"),
     )
     p1.make()
 
