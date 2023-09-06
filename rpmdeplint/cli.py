@@ -9,13 +9,14 @@ from __future__ import absolute_import
 import sys
 import logging
 import argparse
-import pkg_resources
+from importlib import metadata
+
 from rpmdeplint import DependencyAnalyzer, UnreadablePackageError
 from rpmdeplint.repodata import Repo, RepoDownloadError, PackageDownloadError
 
 logger = logging.getLogger(__name__)
 
-version = pkg_resources.require('rpmdeplint')[0].version
+version = metadata.version("rpmdeplint")
 
 def cmd_check(args):
     """
