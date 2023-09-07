@@ -32,6 +32,7 @@ BuildRequires:  python3-hawkey
 BuildRequires:  python3-librepo
 BuildRequires:  python3-solv
 BuildRequires:  python3-rpmfluff
+BuildRequires:  python3-requests
 Requires:       python3-hawkey
 Requires:       python3-librepo
 Requires:       python3-solv

@@ -30,7 +30,7 @@ setup(
     python_requires=">=3.8",
     packages=["rpmdeplint", "rpmdeplint.tests"],
     setup_requires=["setuptools", "sphinx"],
-    install_requires=["six", "rpm"],
+    install_requires=["requests", "six", "rpm"],
     # These rpms don't provide python3.11dist(hawkey|librepo|solv)
     # https://bugzilla.redhat.com/show_bug.cgi?id=2237481
     # install_requires+=["hawkey", "librepo", "solv"]
