@@ -356,12 +356,12 @@ class Repo:
         Checksums cannot be checked by this method, because checksums work
         only when complete RPM file is downloaded.
         """
+        local_path = os.path.join(self._root_path, os.path.basename(location))
         if self.librepo_handle.local:
             logger.debug("Using package %s from local filesystem directly", local_path)
             return local_path
 
         # Check if we already downloaded this file and return it if so.
-        local_path = os.path.join(self._root_path, os.path.basename(location))
         if self._is_header_complete(local_path):
             logger.debug("Using already downloaded package from %s", local_path)
             return local_path
