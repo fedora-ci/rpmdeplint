@@ -1,0 +1,10 @@
+summary:
+  Unit tests
+prepare:
+  how: install
+  package:
+    - python3-pytest
+    - python3-rpmfluff
+execute:
+  script:
+    - pytest --verbose --showlocals rpmdeplint/

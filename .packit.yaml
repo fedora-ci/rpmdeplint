@@ -29,3 +29,9 @@ jobs:
       - epel-9
     owner: "@osci"
     project: rpmdeplint
+
+  - job: tests
+    trigger: pull_request
+    targets:
+      - fedora-all
+      - epel-9

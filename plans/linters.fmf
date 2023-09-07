@@ -1,0 +1,9 @@
+summary:
+  Run linters on source code and packaging files
+prepare:
+  - how: install
+    package:
+      - rpmlint
+execute:
+  script:
+    - rpmlint rpmdeplint.spec
