@@ -9,6 +9,7 @@ import logging
 import os
 import os.path
 from collections import defaultdict
+from typing import List, Dict, Any, Set, Iterable
 
 import rpm
 import solv
@@ -54,11 +55,11 @@ class DependencySet:
 
     def __init__(self):
         self._packagedeps = defaultdict(lambda: dict(dependencies=[], problems=[]))
-        self._packages_with_problems = set()
-        self._overall_problems = set()
+        self._packages_with_problems: Set[str] = set()
+        self._overall_problems: Set[str] = set()
 
-    def add_package(self, pkg, dependencies, problems):
-        nevra = str(pkg)
+    def add_package(self, pkg, dependencies: Iterable, problems: List):
+        nevra: str = str(pkg)
         self._packagedeps[nevra]["dependencies"].extend(map(str, dependencies))
         if len(problems) != 0:
             all_problems = []
@@ -74,25 +75,29 @@ class DependencySet:
             self._overall_problems.update(all_problems)
 
     @property
-    def packages(self):
+    def is_ok(self) -> bool:
+        return len(self._overall_problems) == 0
+
+    @property
+    def packages(self) -> List[str]:
         return sorted(self._packagedeps.keys())
 
     @property
-    def overall_problems(self):
+    def overall_problems(self) -> List[str]:
         """
         List of str dependency problems found (if any)
         """
         return sorted(self._overall_problems)
 
     @property
-    def packages_with_problems(self):
+    def packages_with_problems(self) -> List[str]:
         """
         List of :py:class:`solv.Solvable` which had dependency problems
         """
         return sorted(self._packages_with_problems)
 
     @property
-    def package_dependencies(self):
+    def package_dependencies(self) -> Dict[str, Dict[str, List]]:
         """
         Dict in the form {package: {'dependencies': list of packages, 'problems': list of problems}}
         """
@@ -108,7 +113,7 @@ class DependencyAnalyzer:
     methods to perform each check.
     """
 
-    def __init__(self, repos, packages, arch=None):
+    def __init__(self, repos: Iterable, packages: Iterable[str], arch=None):
         """
         :param repos: An iterable of :py:class:`rpmdeplint.repodata.Repo` instances
         :param packages: An iterable of RPM package paths to be tested
@@ -127,7 +132,7 @@ class DependencyAnalyzer:
             if solvable is None:
                 # pool.errstr is already prefixed with the filename
                 raise UnreadablePackageError(
-                    "Failed to read package: %s" % self.pool.errstr
+                    f"Failed to read package: {self.pool.errstr}"
                 )
             self.solvables.append(solvable)
 
@@ -139,7 +144,7 @@ class DependencyAnalyzer:
                 repo.download_repodata()
             except RepoDownloadError as e:
                 if repo.skip_if_unavailable:
-                    logger.warn("Skipping repo %s: %s", repo.name, e)
+                    logger.warning("Skipping repo %s: %s", repo.name, e)
                     continue
                 else:
                     raise
@@ -177,7 +182,7 @@ class DependencyAnalyzer:
     def __exit__(self, type, value, tb):
         return
 
-    def download_package_header(self, solvable):
+    def download_package_header(self, solvable) -> str:
         if solvable in self.solvables:
             # It's a package under test, nothing to download
             return solvable.lookup_location()[0]
@@ -186,28 +191,25 @@ class DependencyAnalyzer:
         repo = self.repos_by_name[solvable.repo.name]
         return repo.download_package_header(href, baseurl)
 
-    def try_to_install_all(self):
+    def try_to_install_all(self) -> DependencySet:
         """
         Try to solve the goal of installing each of the packages under test,
         starting from an empty package set.
 
-        :return: Tuple of (bool ok?, :py:class:`DependencySet`)
+        :return: dependency set
         """
         solver = self.pool.Solver()
         ds = DependencySet()
         for solvable in self.solvables:
             logger.debug("Solving install jobs for %s", solvable)
             jobs = solvable.Selection().jobs(solv.Job.SOLVER_INSTALL)
-            problems = solver.solve(jobs)
-            if problems:
+            if problems := solver.solve(jobs):
                 ds.add_package(solvable, [], problems)
             else:
                 ds.add_package(solvable, solver.transaction().newsolvables(), [])
+        return ds
 
-        ok = len(ds.overall_problems) == 0
-        return ok, ds
-
-    def _select_obsoleted_by(self, solvables):
+    def _select_obsoleted_by(self, solvables: Iterable) -> Any:
         """
         Returns a solv.Selection matching every solvable which is "obsoleted"
         by some solvable in the given list -- either due to an explicit
@@ -221,7 +223,7 @@ class DependencyAnalyzer:
             # XXX are there some special cases with arch-noarch upgrades which this does not handle?
             sel.add(
                 self.pool.select(
-                    "{}.{} < {}".format(solvable.name, solvable.arch, solvable.evr),
+                    f"{solvable.name}.{solvable.arch} < {solvable.evr}",
                     solv.Selection.SELECTION_NAME
                     | solv.Selection.SELECTION_DOTARCH
                     | solv.Selection.SELECTION_REL,
@@ -234,7 +236,7 @@ class DependencyAnalyzer:
                 sel.add(obsoletes_rel.Selection_name())
         return sel
 
-    def find_repoclosure_problems(self):
+    def find_repoclosure_problems(self) -> List[str]:
         """
         Checks for any package in the repos which would have unsatisfied
         dependencies, if the packages under test were added to the repos.
@@ -257,7 +259,7 @@ class DependencyAnalyzer:
         obsoleted = obs_sel.solvables() + existing_obs_sel.solvables()
         logger.debug(
             "Excluding the following obsoleted packages:\n%s",
-            "\n".join("  {}".format(s) for s in obsoleted),
+            "\n".join(f"  {s}" for s in obsoleted),
         )
         for solvable in self.pool.solvables:
             if solvable in self.solvables:
@@ -266,8 +268,9 @@ class DependencyAnalyzer:
                 continue  # no reason to check it
             if not self.pool.isknownarch(solvable.archid):
                 logger.debug(
-                    "Skipping requirements for package {} arch does not match "
-                    "Architecture under test".format(str(solvable))
+                    "Skipping requirements for package %s arch does not match "
+                    "Architecture under test",
+                    str(solvable),
                 )
                 continue
             logger.debug("Checking requires for %s", solvable)
@@ -278,8 +281,7 @@ class DependencyAnalyzer:
                 + obs_sel.jobs(solv.Job.SOLVER_ERASE)
                 + existing_obs_sel.jobs(solv.Job.SOLVER_ERASE)
             )
-            solver_problems = solver.solve(jobs)
-            if solver_problems:
+            if solver_problems := solver.solve(jobs):
                 problem_msgs = [str(p) for p in solver_problems]
                 # If it's a pre-existing problem with repos (that is, the
                 # problem also exists when the packages under test are
@@ -288,23 +290,24 @@ class DependencyAnalyzer:
                 jobs = solvable.Selection().jobs(
                     solv.Job.SOLVER_INSTALL
                 ) + existing_obs_sel.jobs(solv.Job.SOLVER_ERASE)
-                existing_problems = solver.solve(jobs)
-                if existing_problems:
+                if existing_problems := solver.solve(jobs):
                     for p in existing_problems:
-                        logger.warn("Ignoring pre-existing repoclosure problem: %s", p)
+                        logger.warning(
+                            "Ignoring pre-existing repoclosure problem: %s", p
+                        )
                 else:
                     problems.extend(problem_msgs)
         return problems
 
-    def _files_in_solvable(self, solvable):
+    def _files_in_solvable(self, solvable) -> Set:
         iterator = solvable.Dataiterator(
             self.pool.str2id("solvable:filelist"),
             None,
             solv.Dataiterator.SEARCH_FILES | solv.Dataiterator.SEARCH_COMPLETE_FILELIST,
         )
-        return [match.str for match in iterator]
+        return {match.str for match in iterator}
 
-    def _packages_can_be_installed_together(self, left, right):
+    def _packages_can_be_installed_together(self, left, right) -> bool:
         """
         Returns True if the given packages can be installed together.
         """
@@ -314,26 +317,23 @@ class DependencyAnalyzer:
         # First check if each one can be installed on its own. If either of
         # these fails it is a warning, because it means we have no way to know
         # if they can be installed together or not.
-        problems = solver.solve(left_install_jobs)
-        if problems:
-            logger.warn(
+        if problems := solver.solve(left_install_jobs):
+            logger.warning(
                 "Ignoring conflict candidate %s "
                 "with pre-existing dependency problems: %s",
                 left,
                 problems[0],
             )
             return False
-        problems = solver.solve(right_install_jobs)
-        if problems:
-            logger.warn(
+        if problems := solver.solve(right_install_jobs):
+            logger.warning(
                 "Ignoring conflict candidate %s "
                 "with pre-existing dependency problems: %s",
                 right,
                 problems[0],
             )
             return False
-        problems = solver.solve(left_install_jobs + right_install_jobs)
-        if problems:
+        if problems := solver.solve(left_install_jobs + right_install_jobs):
             logger.debug(
                 "Conflict candidates %s and %s cannot be installed together: %s",
                 left,
@@ -343,7 +343,7 @@ class DependencyAnalyzer:
             return False
         return True
 
-    def _file_conflict_is_permitted(self, left, right, filename):
+    def _file_conflict_is_permitted(self, left, right, filename: str) -> bool:
         """
         Returns True if rpm would allow both the given packages to share
         ownership of the given filename.
@@ -376,7 +376,7 @@ class DependencyAnalyzer:
             return True
         return False
 
-    def _file_conflict_is_permitted_rpm411(self, left, right, filename):
+    def _file_conflict_is_permitted_rpm411(self, left, right, filename: str) -> bool:
         # In rpm 4.12+ the rpmfilesCompare() function is exposed nicely as the
         # rpm.files.matches Python method. In earlier rpm versions there is
         # nothing equivalent in the Python bindings, although we can use ctypes
@@ -404,14 +404,14 @@ class DependencyAnalyzer:
         try:
             while left_fi.FN() != filename:
                 left_fi.next()
-        except StopIteration:
-            raise KeyError("Entry {} not found in {}".format(filename, left))
+        except StopIteration as e:
+            raise KeyError(f"Entry {filename} not found in {left}") from e
         right_fi = rpm.fi(right_hdr)
         try:
             while right_fi.FN() != filename:
                 right_fi.next()
-        except StopIteration:
-            raise KeyError("Entry {} not found in {}".format(filename, right))
+        except StopIteration as exc:
+            raise KeyError(f"Entry {filename} not found in {right}") from exc
         if librpm.rpmfiCompare(_rpm.fiFromFi(left_fi), _rpm.fiFromFi(right_fi)) == 0:
             logger.debug(
                 "Conflict on %s between %s and %s permitted because files match",
@@ -430,7 +430,7 @@ class DependencyAnalyzer:
             return True
         return False
 
-    def find_conflicts(self):
+    def find_conflicts(self) -> List[str]:
         """
         Find undeclared file conflicts in the packages under test.
 
@@ -441,7 +441,7 @@ class DependencyAnalyzer:
         problems = []
         for solvable in self.solvables:
             logger.debug("Checking all files in %s for conflicts", solvable)
-            filenames = set(self._files_in_solvable(solvable))
+            filenames = self._files_in_solvable(solvable)
             # In libsolv, iterating all solvables is fast, and listing all
             # files in a solvable is fast, but finding solvables which contain
             # a given file is *very slow* (see bug 1465736).
@@ -467,10 +467,9 @@ class DependencyAnalyzer:
                     if not self._file_conflict_is_permitted(
                         solvable, conflicting, filename
                     ):
-                        msg = "{} provides {} which is also provided by {}".format(
-                            str(solvable),
-                            filename,
-                            str(conflicting),
+                        msg = (
+                            f"{solvable} provides {filename} "
+                            f"which is also provided by {conflicting}"
                         )
                         problems.append(msg)
                     if conflicting not in self.solvables:
@@ -493,7 +492,7 @@ class DependencyAnalyzer:
                         filenames.remove(filename)
         return sorted(problems)
 
-    def find_upgrade_problems(self):
+    def find_upgrade_problems(self) -> List[str]:
         """
         Checks for any package in the repos which would upgrade or obsolete the
         packages under test.
@@ -503,7 +502,7 @@ class DependencyAnalyzer:
         """
         # Pretend the packages under test are installed, then solve a distupgrade.
         # If any package under test would be erased, then it means some other
-        # package in the repos is better than it and we have a problem.
+        # package in the repos is better than it, and we have a problem.
         self.pool.installed = self.commandline_repo
         try:
             jobs = self.pool.Selection_all().jobs(solv.Job.SOLVER_UPDATE)
@@ -515,7 +514,7 @@ class DependencyAnalyzer:
                 # some *other* problems with existing packages in the
                 # repository, not our packages under test. But it means our
                 # results here might not be valid.
-                logger.warn(
+                logger.warning(
                     "Upgrade candidate has pre-existing dependency problem: %s", problem
                 )
             transaction = solver.transaction()
@@ -529,22 +528,14 @@ class DependencyAnalyzer:
                     continue  # it's kept, so no problem here
                 elif action == transaction.SOLVER_TRANSACTION_UPGRADED:
                     problems.append(
-                        "{} would be upgraded by {} from repo {}".format(
-                            str(solvable),
-                            str(other),
-                            other.repo.name,
-                        )
+                        f"{solvable} would be upgraded by {other} from repo {other.repo.name}"
                     )
                 elif action == transaction.SOLVER_TRANSACTION_OBSOLETED:
                     problems.append(
-                        "{} would be obsoleted by {} from repo {}".format(
-                            str(solvable),
-                            str(other),
-                            other.repo.name,
-                        )
+                        f"{solvable} would be obsoleted by {other} from repo {other.repo.name}"
                     )
                 else:
-                    raise RuntimeError("Unrecognised transaction step type %s" % action)
+                    raise RuntimeError(f"Unrecognised transaction step type {action}")
             return problems
         finally:
             self.pool.installed = None
