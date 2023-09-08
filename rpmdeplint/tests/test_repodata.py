@@ -64,7 +64,7 @@ def test_skips_disabled_system_yum_repo(yumdir):
     )
 
     repos = list(Repo.from_yum_config())
-    assert len(repos) == 0
+    assert not repos
 
 
 def test_loads_system_yum_repo_with_substitutions(yumdir, monkeypatch):

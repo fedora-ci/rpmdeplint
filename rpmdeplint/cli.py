@@ -4,10 +4,12 @@
 # (at your option) any later version.
 
 
-import sys
-import logging
 import argparse
+import logging
+import sys
+from enum import IntEnum
 from importlib import metadata
+from typing import List, Callable
 
 from rpmdeplint import DependencyAnalyzer, UnreadablePackageError
 from rpmdeplint.repodata import Repo, RepoDownloadError, PackageDownloadError
@@ -17,115 +19,110 @@ logger = logging.getLogger(__name__)
 version = metadata.version("rpmdeplint")
 
 
-def cmd_check(args):
+class ExitCode(IntEnum):
+    OK = 0
+    ERROR = 1
+    FAILED = 3
+
+
+def log_problems(message: str, _problems: List[str]) -> ExitCode:
+    sys.stderr.write(f"{message}:\n")
+    sys.stderr.write("\n".join(_problems) + "\n")
+    return ExitCode.FAILED
+
+
+def cmd_check(args) -> ExitCode:
     """
     Performs all checks on the given packages.
     """
-    failed = False
+
+    exit_code = ExitCode.OK
     with dependency_analyzer_from_args(args) as analyzer:
         logger.debug("Performing satisfiability check (check-sat)")
-        ok, result = analyzer.try_to_install_all()
-        if not ok:
-            sys.stderr.write("Problems with dependency set:\n")
-            sys.stderr.write("\n".join(result.overall_problems) + "\n")
-            failed = True
+        dependency_set = analyzer.try_to_install_all()
+        if not dependency_set.is_ok:
+            exit_code = log_problems(
+                "Problems with dependency set", dependency_set.overall_problems
+            )
         logger.debug("Performing repoclosure check (check-repoclosure)")
-        problems = analyzer.find_repoclosure_problems()
-        if problems:
-            sys.stderr.write("Dependency problems with repos:\n")
-            sys.stderr.write("\n".join(problems) + "\n")
-            failed = True
+        if problems := analyzer.find_repoclosure_problems():
+            exit_code = log_problems("Dependency problems with repos", problems)
         logger.debug("Performing file conflict check (check-conflicts)")
-        conflicts = analyzer.find_conflicts()
-        if conflicts:
-            sys.stderr.write("Undeclared file conflicts:\n")
-            sys.stderr.write("\n".join(conflicts) + "\n")
-            failed = True
+        if conflicts := analyzer.find_conflicts():
+            exit_code = log_problems("Undeclared file conflicts", conflicts)
         logger.debug("Performing upgrade check (check-upgrade)")
-        problems = analyzer.find_upgrade_problems()
-        if problems:
-            sys.stderr.write("Upgrade problems:\n")
-            sys.stderr.write("\n".join(problems) + "\n")
-            failed = True
-    return 3 if failed else 0
+        if problems := analyzer.find_upgrade_problems():
+            exit_code = log_problems("Upgrade problems", problems)
+    return exit_code
 
 
-def cmd_check_sat(args):
+def cmd_check_sat(args) -> ExitCode:
     """
     Checks that all dependencies needed to install the given packages
     can be satisfied using the given repos.
     """
     with dependency_analyzer_from_args(args) as analyzer:
-        ok, result = analyzer.try_to_install_all()
+        dependency_set = analyzer.try_to_install_all()
+        if not dependency_set.is_ok:
+            return log_problems(
+                "Problems with dependency set", dependency_set.overall_problems
+            )
+    return ExitCode.OK
 
-        if not ok:
-            sys.stderr.write("Problems with dependency set:\n")
-            sys.stderr.write("\n".join(result.overall_problems) + "\n")
-            return 3
-    return 0
 
-
-def cmd_check_repoclosure(args):
+def cmd_check_repoclosure(args) -> ExitCode:
     """
     Checks that all dependencies of all packages in the given repos can still
     be satisfied, when the given packages are included.
     """
     with dependency_analyzer_from_args(args) as analyzer:
-        problems = analyzer.find_repoclosure_problems()
-    if problems:
-        sys.stderr.write("Dependency problems with repos:\n")
-        sys.stderr.write("\n".join(problems) + "\n")
-        return 3
-    return 0
+        if problems := analyzer.find_repoclosure_problems():
+            return log_problems("Dependency problems with repos", problems)
+    return ExitCode.OK
 
 
-def cmd_check_conflicts(args):
+def cmd_check_conflicts(args) -> ExitCode:
     """
     Checks for undeclared file conflicts in the given packages.
     """
     with dependency_analyzer_from_args(args) as analyzer:
-        conflicts = analyzer.find_conflicts()
-    if conflicts:
-        sys.stderr.write("Undeclared file conflicts:\n")
-        sys.stderr.write("\n".join(conflicts) + "\n")
-        return 3
-    return 0
+        if conflicts := analyzer.find_conflicts():
+            return log_problems("Undeclared file conflicts", conflicts)
+    return ExitCode.OK
 
 
-def cmd_check_upgrade(args):
+def cmd_check_upgrade(args) -> ExitCode:
     """
     Checks that the given packages are not older than any other existing
     package in the repos.
     """
     with dependency_analyzer_from_args(args) as analyzer:
-        problems = analyzer.find_upgrade_problems()
-    if problems:
-        sys.stderr.write("Upgrade problems:\n")
-        sys.stderr.write("\n".join(problems) + "\n")
-        return 3
-    return 0
+        if problems := analyzer.find_upgrade_problems():
+            return log_problems("Upgrade problems", problems)
+    return ExitCode.OK
 
 
-def cmd_list_deps(args):
+def cmd_list_deps(args) -> ExitCode:
     """
     Lists all (transitive) dependencies of the given packages -- that is,
     the complete set of dependent packages which are needed
     in order to install the packages under test.
     """
+    exit_code = ExitCode.OK
     with dependency_analyzer_from_args(args) as analyzer:
-        ok, result = analyzer.try_to_install_all()
-        if not ok:
-            sys.stderr.write("Problems with dependency set:\n")
-            sys.stderr.write("\n".join(result.overall_problems) + "\n")
-            return 3
+        dependency_set = analyzer.try_to_install_all()
+        if not dependency_set.is_ok:
+            exit_code = log_problems(
+                "Problems with dependency set", dependency_set.overall_problems
+            )
 
-    package_deps = result.package_dependencies
-    for pkg in package_deps.keys():
-        deps = package_deps[pkg]["dependencies"]
-        sys.stdout.write("{} has {} dependencies:\n".format(pkg, len(deps)))
+    package_deps = dependency_set.package_dependencies
+    for pkg, deps in package_deps.items():
+        deps = deps["dependencies"]
+        sys.stdout.write(f"{pkg} has {len(deps)} dependencies:\n")
         sys.stdout.write("\n".join(["\t" + x for x in deps]))
         sys.stdout.write("\n\n")
-    return 0
+    return exit_code
 
 
 def log_to_stream(stream, level=logging.WARNING):
@@ -142,16 +139,14 @@ def dependency_analyzer_from_args(args):
     if args.repos_from_system:
         repos.extend(Repo.from_yum_config())
     repos.extend(args.repos)
-    rpms = list(args.rpms)
-    arch = args.arch
 
-    return DependencyAnalyzer(repos, rpms, arch=arch)
+    return DependencyAnalyzer(repos, list(args.rpms), arch=args.arch)
 
 
-def comma_separated_repo(value):
+def comma_separated_repo(value: str) -> Repo:
     if "," not in value:
         raise argparse.ArgumentTypeError(
-            "Repo %r is not in the form <name>,<path>" % value
+            f"Repo {value!r} is not in the form <name>,<path>"
         )
     return Repo(*value.split(",", 1))
 
@@ -199,6 +194,13 @@ def validate_common_dependency_analyzer_args(parser, args):
 
 
 def main():
+    def add_subparser(subcommand: str, _help: str, subcommand_func: Callable):
+        parser_check = subparsers.add_parser(
+            subcommand, help=help, description=subcommand_func.__doc__
+        )
+        add_common_dependency_analyzer_args(parser_check)
+        parser_check.set_defaults(func=subcommand_func)
+
     parser = argparse.ArgumentParser(
         description="Checks for errors in "
         "RPM packages in the context of their dependency graph.",
@@ -208,57 +210,37 @@ def main():
         "--debug", action="store_true", help="Show detailed progress messages"
     )
     parser.add_argument("--quiet", action="store_true", help="Show only errors")
-    parser.add_argument("--version", action="version", version="%(prog)s " + version)
+    parser.add_argument("--version", action="version", version=f"%(prog)s {version}")
 
     subparsers = parser.add_subparsers(dest="subcommand", title="subcommands")
     subparsers.required = True
 
-    parser_check = subparsers.add_parser(
-        "check", help="Perform all checks", description=cmd_check.__doc__
-    )
-    add_common_dependency_analyzer_args(parser_check)
-    parser_check.set_defaults(func=cmd_check)
-
-    parser_check_sat = subparsers.add_parser(
+    add_subparser("check", "Perform all checks", cmd_check)
+    add_subparser(
         "check-sat",
-        help="Check that dependencies can be satisfied",
-        description=cmd_check_sat.__doc__,
+        "Check that dependencies can be satisfied",
+        cmd_check_sat,
     )
-    add_common_dependency_analyzer_args(parser_check_sat)
-    parser_check_sat.set_defaults(func=cmd_check_sat)
-
-    parser_check_repoclosure = subparsers.add_parser(
+    add_subparser(
         "check-repoclosure",
-        help="Check that repo dependencies can still be satisfied",
-        description=cmd_check_repoclosure.__doc__,
+        "Check that repo dependencies can still be satisfied",
+        cmd_check_repoclosure,
     )
-    add_common_dependency_analyzer_args(parser_check_repoclosure)
-    parser_check_repoclosure.set_defaults(func=cmd_check_repoclosure)
-
-    parser_check_conflicts = subparsers.add_parser(
+    add_subparser(
         "check-conflicts",
-        help="Check for undeclared file conflicts",
-        description=cmd_check_conflicts.__doc__,
+        "Check for undeclared file conflicts",
+        cmd_check_conflicts,
     )
-    add_common_dependency_analyzer_args(parser_check_conflicts)
-    parser_check_conflicts.set_defaults(func=cmd_check_conflicts)
-
-    parser_check_upgrade = subparsers.add_parser(
+    add_subparser(
         "check-upgrade",
-        help="Check package is an upgrade",
-        description=cmd_check_upgrade.__doc__,
+        "Check package is an upgrade",
+        cmd_check_upgrade,
     )
-    add_common_dependency_analyzer_args(parser_check_upgrade)
-    parser_check_upgrade.set_defaults(func=cmd_check_upgrade)
-
-    parser_list_deps = subparsers.add_parser(
+    add_subparser(
         "list-deps",
-        help="List all packages needed to satisfy dependencies",
-        description=cmd_list_deps.__doc__,
+        "List all packages needed to satisfy dependencies",
+        cmd_list_deps,
     )
-    add_common_dependency_analyzer_args(parser_list_deps)
-    parser_list_deps.set_defaults(func=cmd_list_deps)
-
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.DEBUG)
     log_to_stream(
@@ -278,7 +260,7 @@ def main():
         parser.error(str(exc))
     except (UnreadablePackageError, RepoDownloadError, PackageDownloadError) as exc:
         sys.stderr.write("%s\n" % exc)
-        return 1
+        return ExitCode.ERROR
 
 
 if __name__ == "__main__":

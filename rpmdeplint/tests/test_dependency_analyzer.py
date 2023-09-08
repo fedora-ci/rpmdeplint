@@ -53,8 +53,8 @@ class TestDependencyAnalyzer(TestCase):
             ],
         )
 
-        ok, dependency_set = da.try_to_install_all()
-        self.assertEqual(False, ok)
+        dependency_set = da.try_to_install_all()
+        self.assertEqual(False, dependency_set.is_ok)
         self.assertEqual(1, len(dependency_set.overall_problems))
         self.assertEqual(
             [
@@ -86,8 +86,8 @@ class TestDependencyAnalyzer(TestCase):
             ],
         )
 
-        ok, dependency_set = da.try_to_install_all()
-        self.assertEqual(True, ok)
+        dependency_set = da.try_to_install_all()
+        self.assertEqual(True, dependency_set.is_ok)
         self.assertEqual(
             4,
             len(

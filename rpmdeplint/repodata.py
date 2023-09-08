@@ -81,7 +81,7 @@ def get_yumvars():
 
 def substitute_yumvars(s, yumvars):
     for name, value in yumvars.items():
-        s = s.replace("$" + name, value)
+        s = s.replace(f"${name}", value)
     return s
 
 
@@ -237,7 +237,7 @@ class Repo:
         except librepo.LibrepoException as ex:
             raise RepoDownloadError(
                 "Failed to download repodata for {!r}: {}".format(self, ex.args[1])
-            )
+            ) from ex
 
     def _download_repodata_file(self, checksum, url):
         """
@@ -257,7 +257,7 @@ class Repo:
                 pass  # cache entry does not exist, we will download it
             elif e.errno == errno.EISDIR:
                 # This is the original cache directory layout, merged in commit
-                # 6f11c3708 although it didn't appear in any released version
+                # 6f11c3708, although it didn't appear in any released version
                 # of rpmdeplint. To be helpful we will fix it up, by just
                 # deleting the directory and letting it be replaced by a file.
                 shutil.rmtree(filepath_in_cache, ignore_errors=True)
@@ -334,9 +334,9 @@ class Repo:
         except FileNotFoundError:
             return False
 
-    def download_package_header(self, location, baseurl):
+    def download_package_header(self, location, baseurl) -> str:
         """
-        Downloads the package header so it can be parsed by `hdrFromFdno`.
+        Downloads the package header, so it can be parsed by `hdrFromFdno`.
 
         There is no function provided by the Python `rpm` module which would
         return the size of RPM header. This method therefore tries to download
@@ -351,7 +351,7 @@ class Repo:
         This strategy still wastes some bandwidth, because we are downloading
         first N bytes repeatedly, but because header of typical RPM fits
         into first 100KB usually and because the RPM data is much bigger than
-        what we download repeatedly, it saves lot of time and bandwidth overall.
+        what we download repeatedly, it saves a lot of time and bandwidth overall.
 
         Checksums cannot be checked by this method, because checksums work
         only when complete RPM file is downloaded.
@@ -384,12 +384,10 @@ class Repo:
             librepo.download_packages([target])
             if target.err and target.err != "Already downloaded":
                 raise PackageDownloadError(
-                    "Failed to download %s from repo %s: %s"
-                    % (location, self.name, target.err)
+                    f"Failed to download {location} from repo {self.name}: {target.err}"
                 )
-            else:
-                if self._is_header_complete(target.local_path):
-                    break
+            if self._is_header_complete(target.local_path):
+                break
 
         logger.debug("Saved as %s", target.local_path)
         return target.local_path
@@ -420,15 +418,7 @@ class Repo:
 
     def __repr__(self):
         if self.baseurl:
-            return "{}(repo_name={!r}, baseurl={!r})".format(
-                self.__class__.__name__,
-                self.name,
-                self.baseurl,
-            )
+            return f"{self.__class__.__name__}(repo_name={self.name!r}, baseurl={self.baseurl!r})"
         if self.metalink:
-            return "{}(repo_name={!r}, metalink={!r})".format(
-                self.__class__.__name__,
-                self.name,
-                self.metalink,
-            )
-        return "{}(repo_name={!r})".format(self.__class__.__name__, self.name)
+            return f"{self.__class__.__name__}(repo_name={self.name!r}, metalink={self.metalink!r})"
+        return f"{self.__class__.__name__}(repo_name={self.name!r})"

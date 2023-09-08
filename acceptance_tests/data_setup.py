@@ -19,19 +19,15 @@ def run_rpmdeplint(args, **kwargs):
         stdin=open("/dev/null"),
         stderr=subprocess.PIPE,
         env=env,
-        **kwargs
+        **kwargs,
     )
 
     max_output = 10240
     out = p.stdout.read(max_output).decode("UTF-8")
     if len(out) == max_output:
-        raise RuntimeError(
-            "Output size limit exceeded when invoking {}:\n{}".format(args, out)
-        )
+        raise RuntimeError(f"Output size limit exceeded when invoking {args}:\n{out}")
     err = p.stderr.read(max_output).decode("UTF-8")
     if len(err) == max_output:
-        raise RuntimeError(
-            "Stderr size limit exceeded when invoking {}:\n{}".format(args, out)
-        )
+        raise RuntimeError(f"Stderr size limit exceeded when invoking {args}:\n{out}")
     p.wait()
-    return (p.returncode, out, err)
+    return p.returncode, out, err
