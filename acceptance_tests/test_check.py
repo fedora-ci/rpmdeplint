@@ -14,7 +14,7 @@ from data_setup import run_rpmdeplint
 from rpmdeplint.repodata import cache_base_path
 
 
-def expected_cache_path(repodir, suffix, old=False):
+def expected_cache_path(repodir: str, suffix: str, old=False):
     """
     For the test repo located in *repodir*, return the path within the
     rpmdeplint cache where we expect the metadata file with given suffix

@@ -12,7 +12,8 @@ import os
 import shutil
 import tempfile
 import time
-from os import scandir  # Python 3.5+
+from os import scandir, getenv
+from typing import Dict, Optional, BinaryIO
 
 import librepo
 import requests
@@ -42,7 +43,7 @@ class RepoDownloadError(Exception):
     pass
 
 
-def get_yumvars():
+def get_yumvars() -> Dict[str, str]:
     # This is not all the yumvars, but hopefully good enough...
 
     try:
@@ -79,19 +80,19 @@ def get_yumvars():
     }
 
 
-def substitute_yumvars(s, yumvars):
+def substitute_yumvars(s: str, yumvars: Dict[str, str]) -> str:
     for name, value in yumvars.items():
         s = s.replace(f"${name}", value)
     return s
 
 
-def cache_base_path():
+def cache_base_path() -> str:
     default_cache_home = os.path.join(os.path.expanduser("~"), ".cache")
-    cache_home = os.environ.get("XDG_CACHE_HOME", default_cache_home)
+    cache_home = getenv("XDG_CACHE_HOME", default_cache_home)
     return os.path.join(cache_home, "rpmdeplint")
 
 
-def cache_entry_path(checksum):
+def cache_entry_path(checksum: str) -> str:
     return os.path.join(cache_base_path(), checksum[:1], checksum[1:])
 
 
@@ -171,7 +172,11 @@ class Repo:
                 )
 
     def __init__(
-        self, repo_name, baseurl=None, metalink=None, skip_if_unavailable=False
+        self,
+        repo_name: str,
+        baseurl: Optional[str] = None,
+        metalink: Optional[str] = None,
+        skip_if_unavailable: bool = False,
     ):
         """
         :param repo_name: Name of the repository, for example "fedora-updates"
@@ -231,15 +236,15 @@ class Repo:
                 self.filelists_checksum, self.filelists_url
             )
 
-    def _download_metadata_result(self, handle, result):
+    def _download_metadata_result(self, handle: librepo.Handle, result: librepo.Result):
         try:
             handle.perform(result)
         except librepo.LibrepoException as ex:
             raise RepoDownloadError(
-                "Failed to download repodata for {!r}: {}".format(self, ex.args[1])
+                f"Failed to download repodata for {self!r}: {ex.args[1]}"
             ) from ex
 
-    def _download_repodata_file(self, checksum, url):
+    def _download_repodata_file(self, checksum: str, url: str) -> BinaryIO:
         """
         Each created file in cache becomes immutable, and is referenced in
         the directory tree within XDG_CACHE_HOME as
@@ -309,7 +314,7 @@ class Repo:
             os.unlink(temp_path)
             raise
 
-    def _is_header_complete(self, local_path):
+    def _is_header_complete(self, local_path: str) -> bool:
         """
         Returns `True` if the RPM file `local_path` has complete RPM header.
         """
@@ -334,7 +339,7 @@ class Repo:
         except FileNotFoundError:
             return False
 
-    def download_package_header(self, location, baseurl) -> str:
+    def download_package_header(self, location: str, baseurl: str) -> str:
         """
         Downloads the package header, so it can be parsed by `hdrFromFdno`.
 
@@ -397,23 +402,27 @@ class Repo:
         return self._yum_repomd
 
     @property
-    def repomd_fn(self):
+    def repomd_fn(self) -> str:
         return os.path.join(self._root_path, "repodata", "repomd.xml")
 
     @property
-    def primary_url(self):
+    def primary_url(self) -> str:
+        if not self.baseurl:
+            raise RuntimeError("baseurl not specified")
         return os.path.join(self.baseurl, self.yum_repomd["primary"]["location_href"])
 
     @property
-    def primary_checksum(self):
+    def primary_checksum(self) -> str:
         return self.yum_repomd["primary"]["checksum"]
 
     @property
-    def filelists_checksum(self):
+    def filelists_checksum(self) -> str:
         return self.yum_repomd["filelists"]["checksum"]
 
     @property
-    def filelists_url(self):
+    def filelists_url(self) -> str:
+        if not self.baseurl:
+            raise RuntimeError("baseurl not specified")
         return os.path.join(self.baseurl, self.yum_repomd["filelists"]["location_href"])
 
     def __repr__(self):

@@ -53,8 +53,10 @@ class DependencySet:
     Contains dependency information from trying to install the packages under test.
     """
 
-    def __init__(self):
-        self._packagedeps = defaultdict(lambda: dict(dependencies=[], problems=[]))
+    def __init__(self) -> None:
+        self._packagedeps: Dict[str, Dict[str, List]] = defaultdict(
+            lambda: dict(dependencies=[], problems=[])
+        )
         self._packages_with_problems: Set[str] = set()
         self._overall_problems: Set[str] = set()
 
