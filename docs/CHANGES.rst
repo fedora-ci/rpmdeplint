@@ -9,7 +9,7 @@ Changelog
   variable ``RPMDEPLINT_EXPIRY_SECONDS``.
 
 * The :py:class:`rpmdeplint.DependencyAnalyzer` class no longer needs to be
-  "entered" as a context manager. The class still supports the context manager 
+  "entered" as a context manager. The class still supports the context manager
   protocol as a no-op for backwards compatibility.
 
 * Added ``--quiet`` option which tells rpmdeplint to only print error messages.
@@ -18,12 +18,12 @@ Changelog
 ~~~
 
 * Fixed handling of the ``xml:base`` attribute in repodata. Previously, if
-  a repo used ``xml:base`` to refer to packages stored at a different URL, 
-  rpmdeplint would fail to download them when it performed conflict checking 
+  a repo used ``xml:base`` to refer to packages stored at a different URL,
+  rpmdeplint would fail to download them when it performed conflict checking
   (`RHBZ#1448768 <https://bugzilla.redhat.com/show_bug.cgi?id=1448768>`__).
 
 * If a package fails to download, a clean error message is now reported.
-  Previously this would result in an unhandled exception, which triggered abrt 
+  Previously this would result in an unhandled exception, which triggered abrt
   handling
   (`RHBZ#1423678 <https://bugzilla.redhat.com/show_bug.cgi?id=1423678>`__).
 
@@ -34,7 +34,7 @@ Changelog
 ~~~
 
 * If you are testing only ``noarch`` packages, you must now explicitly pass the
-  ``--arch`` option to specify the target architecture you are testing against. 
+  ``--arch`` option to specify the target architecture you are testing against.
   Previously the checks would run but produce nonsensical results
   (`RHBZ#1392635 <https://bugzilla.redhat.com/show_bug.cgi?id=1392635>`__).
 
@@ -45,8 +45,8 @@ Changelog
     (`RHBZ#1412910 <https://bugzilla.redhat.com/show_bug.cgi?id=1412910>`__).
 
   * It no longer downloads every potentially conflicting package to
-    check. Only the first potential conflict is checked, to avoid downloading 
-    a very large number of packages for commonly shared paths such as 
+    check. Only the first potential conflict is checked, to avoid downloading
+    a very large number of packages for commonly shared paths such as
     :file:`/usr/lib/debug`
     (`RHBZ#1400722 <https://bugzilla.redhat.com/show_bug.cgi?id=1400722>`__).
 
@@ -90,4 +90,3 @@ Changelog
 
 * Initial release. Supports checking dependency satisfiability and
   undeclared file conflicts.
-
