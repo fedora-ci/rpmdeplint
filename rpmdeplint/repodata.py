@@ -12,7 +12,8 @@ import os
 import shutil
 import tempfile
 import time
-from os import scandir, getenv
+from os import getenv
+from pathlib import Path
 from typing import Dict, Optional, BinaryIO
 
 import librepo
@@ -86,37 +87,31 @@ def substitute_yumvars(s: str, yumvars: Dict[str, str]) -> str:
     return s
 
 
-def cache_base_path() -> str:
-    default_cache_home = os.path.join(os.path.expanduser("~"), ".cache")
-    cache_home = getenv("XDG_CACHE_HOME", default_cache_home)
-    return os.path.join(cache_home, "rpmdeplint")
+def cache_base_path() -> Path:
+    default_cache_home = Path.home() / ".cache"
+    return Path(getenv("XDG_CACHE_HOME", default_cache_home)) / "rpmdeplint"
 
 
-def cache_entry_path(checksum: str) -> str:
-    return os.path.join(cache_base_path(), checksum[:1], checksum[1:])
+def cache_entry_path(checksum: str) -> Path:
+    return cache_base_path() / checksum[:1] / checksum[1:]
 
 
 def clean_cache():
     expiry_time = time.time() - float(
         os.environ.get("RPMDEPLINT_EXPIRY_SECONDS", "604800")
     )
-    try:
-        subdirs = scandir(cache_base_path())
-    except OSError as e:
-        if e.errno == errno.ENOENT:
-            return  # nothing to do
-        else:
-            raise
-    for subdir in subdirs:
+    if not cache_base_path().is_dir():
+        return  # nothing to do
+    for subdir in cache_base_path().iterdir():
         # Should be a subdirectory named after the first checksum letter
-        if not subdir.is_dir(follow_symlinks=False):
+        if not subdir.is_dir():
             continue
-        for entry in scandir(subdir.path):
-            if not entry.is_file(follow_symlinks=False):
+        for entry in subdir.iterdir():
+            if not entry.is_file():
                 continue
             if entry.stat().st_mtime < expiry_time:
-                logger.debug("Purging expired cache file %s", entry.path)
-                os.unlink(entry.path)
+                logger.debug("Purging expired cache file %s", entry)
+                entry.unlink()
 
 
 class Repo:
@@ -254,7 +249,7 @@ class Repo:
         then renamed to the cache dir atomically to avoid them potentially being
         accessed before written to cache.
         """
-        filepath_in_cache = cache_entry_path(checksum)
+        filepath_in_cache: Path = cache_entry_path(checksum)
         try:
             f = open(filepath_in_cache, "rb")
         except OSError as e:
@@ -272,19 +267,10 @@ class Repo:
             logger.debug("Using cached file %s for %s", filepath_in_cache, url)
             # Bump the modtime on the cache file we are using,
             # since our cache expiry is LRU based on modtime.
-            if os.utime in getattr(os, "supports_fd", []):
-                os.utime(f.fileno())  # Python 3.3+
-            else:
-                os.utime(filepath_in_cache, None)
+            os.utime(f.fileno())  # Python 3.3+
             return f
-        try:
-            os.makedirs(os.path.dirname(filepath_in_cache))
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
-        fd, temp_path = tempfile.mkstemp(
-            dir=os.path.dirname(filepath_in_cache), text=False
-        )
+        filepath_in_cache.parent.mkdir(parents=True, exist_ok=True)
+        fd, temp_path = tempfile.mkstemp(dir=filepath_in_cache.parent, text=False)
         logger.debug("Downloading %s to cache temp file %s", url, temp_path)
         try:
             f = os.fdopen(fd, "wb+")
