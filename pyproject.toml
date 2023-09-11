@@ -1,0 +1,58 @@
+# We're using hatchling because setuptools-53.0.0 in RHEL9 can't read
+# metadata from the [project] table below. setuptools>=61.0.0 is needed.
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rpmdeplint"
+authors = [
+    { name = "Red Hat"},
+]
+description = "Rpmdeplint is a tool to find errors in RPM packages in the context of their dependency graph."
+readme = "README.md"
+license = "GPL-2.0-or-later"
+license-files = { paths = ["COPYING"] }
+requires-python = ">=3.8"
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development",
+    "Topic :: Utilities",
+]
+dynamic = ["version"]
+keywords = [
+    "rpm",
+    "dependency",
+    "linter"
+]
+dependencies = [
+    "requests",
+    "rpm",
+]
+
+[project.urls]
+Homepage = "https://github.com/fedora-ci/rpmdeplint"
+Documentation = "https://rpmdeplint.readthedocs.io"
+
+[project.optional-dependencies]
+docs = ["sphinx"]
+tests = [
+    "pytest",
+    "rpmfluff",
+]
+dev = [
+    "rpmdeplint[tests]",
+    "pre-commit",
+]
+
+[project.scripts]
+rpmdeplint = "rpmdeplint.cli:main"
+
+[tool.hatch.version]
+source = "vcs"
+raw-options.version_scheme = "post-release"
