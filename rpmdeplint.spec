@@ -1,71 +1,71 @@
-
-%global upstream_version 1.5
-
 Name:           rpmdeplint
 Version:        1.5
 Release:        %autorelease
 Summary:        Tool to find errors in RPM packages in the context of their dependency graph
 License:        GPL-2.0-or-later
 URL:            https://github.com/fedora-ci/rpmdeplint
-Source0:        https://files.pythonhosted.org/packages/source/r/%{name}/%{name}-%{upstream_version}.tar.gz
+Source0:        %{pypi_source rpmdeplint}
 BuildArch:      noarch
 
 # The base package is just the CLI, which pulls in the rpmdeplint
 # Python modules to do the real work.
-Requires:       python3-%{name} = %{version}-%{release}
+Requires:       python3-rpmdeplint = %{version}-%{release}
 
 %description
 Rpmdeplint is a tool to find errors in RPM packages in the context of their
 dependency graph.
 
 
-%package -n python3-%{name}
-%{?python_provide:%python_provide python3-%{name}}
+%package -n python3-rpmdeplint
+%{?python_provide:%python_provide python3-rpmdeplint}
 Summary:        %{summary}
 BuildRequires:  python3-devel
-BuildRequires:  python3-setuptools
-BuildRequires:  python3-sphinx
-BuildRequires:  python3-pytest
-BuildRequires:  python3-six
-BuildRequires:  python3-rpm
+BuildRequires:  make
+# These rpms don't provide python3.11dist(hawkey|librepo|solv)
+# https://bugzilla.redhat.com/show_bug.cgi?id=2237481
 BuildRequires:  python3-hawkey
 BuildRequires:  python3-librepo
 BuildRequires:  python3-solv
-BuildRequires:  python3-rpmfluff
-BuildRequires:  python3-requests
 Requires:       python3-hawkey
 Requires:       python3-librepo
 Requires:       python3-solv
 
-%description -n python3-%{name}
+%description -n python3-rpmdeplint
 Rpmdeplint is a tool to find errors in RPM packages in the context of their
 dependency graph.
 
 This package provides a Python 3 API for performing the checks.
 
 %prep
-%setup -q -n %{name}-%{upstream_version}
+%autosetup -n rpmdeplint-%{version}
+
+%generate_buildrequires
+# The -w flag is required for EPEL 9's older hatchling
+%pyproject_buildrequires %{?el9:-w} -x docs -x tests
 
 %build
-%py3_build
+%pyproject_wheel
 make -C docs man
 
 %install
-%py3_install
+%pyproject_install
+
+mkdir -p %{buildroot}%{_mandir}/man1/
+mv docs/_build/man/rpmdeplint.1 %{buildroot}%{_mandir}/man1/
+
+%pyproject_save_files rpmdeplint
 
 %check
 py.test-3 rpmdeplint -k "not TestDependencyAnalyzer"
 # Acceptance tests do not work in mock because they require .i686 packages.
 
 %files
-%{_bindir}/%{name}
-%{_mandir}/man1/%{name}.1.*
+%{_bindir}/rpmdeplint
+%{_mandir}/man1/rpmdeplint.1.*
 
-%files -n python3-%{name}
+%files -n python3-rpmdeplint -f %{pyproject_files}
 %license COPYING
-%doc README.rst
-%{python3_sitelib}/%{name}/
-%{python3_sitelib}/%{name}*.egg-info
+%doc README.md
 
 %changelog
 %autochangelog
