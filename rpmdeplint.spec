@@ -46,11 +46,9 @@ This package provides a Python 3 API for performing the checks.
 %prep
 %setup -q -n %{name}-%{upstream_version}
 
-
-rm -rf rpmdeplint.egg-info
-
 %build
 %py3_build
+make -C docs man
 
 %install
 %py3_install

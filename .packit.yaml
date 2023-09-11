@@ -4,14 +4,15 @@ upstream_project_url: https://github.com/fedora-ci/rpmdeplint
 
 actions:
   create-archive:
-    - python3 setup.py sdist --dist-dir .
-    - bash -c "ls -1t ./*.tar.gz | head -n 1"
-  get-current-version: python3 setup.py --version
+    - "python3 -m build --sdist --outdir ."
+    - "sh -c 'echo rpmdeplint-$(hatch version).tar.gz'"
+  get-current-version:
+    - "hatch version"
 
 srpm_build_deps:
-  - python3-pip # "python3 setup.py --version" needs it
-  - python3-setuptools
-  - python3-sphinx
+  - python3-build
+  - hatch
+  - python3-hatch-vcs
 
 upstream_tag_template: rpmdeplint-{version}
 
