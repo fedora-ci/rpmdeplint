@@ -37,7 +37,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/fedora-ci/rpmdeplint"
-Documentation = "https://rpmdeplint.readthedocs.io"
+Documentation = "https://fedora-ci.github.io/rpmdeplint"
 
 [project.optional-dependencies]
 docs = ["sphinx"]

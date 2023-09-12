@@ -23,7 +23,7 @@ For development and tests:
 
 ## Documentation
 
-- https://rpmdeplint.readthedocs.io
+- https://fedora-ci.github.io/rpmdeplint
 
 ## Using
 
