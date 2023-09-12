@@ -8,6 +8,9 @@ Changelog
    * Use `Packit <https://packit.dev>`__ to:
       * build RPMs in `Copr <https://copr.fedorainfracloud.org/coprs/g/osci/rpmdeplint>`__
       * run tests in `Testing Farm <https://docs.testing-farm.io>`__
+      * create PRs in `dist-git <https://src.fedoraproject.org/rpms/rpmdeplint>`__
+      * run `Koji <koji.fedoraproject.org>`__ builds
+      * create `Bodhi <bodhi.fedoraproject.org>`__ updates
    * `Static type hints <https://docs.python.org/3/library/typing.html>`__
    * Automatically deploy documentation to GitHub Pages
    * Automatically publish new releases to PyPI

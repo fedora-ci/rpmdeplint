@@ -2,6 +2,14 @@
 downstream_package_name: rpmdeplint
 upstream_project_url: https://github.com/fedora-ci/rpmdeplint
 
+files_to_sync:
+  - rpmdeplint.spec
+  - .packit.yaml
+  - src: plans/
+    dest: plans/
+  - src: .fmf/
+    dest: .fmf/
+
 actions:
   create-archive:
     - "python3 -m build --sdist --outdir ."
@@ -35,4 +43,20 @@ jobs:
     trigger: pull_request
     targets:
       - fedora-all
+      - epel-9
+
+  - job: propose_downstream
+    trigger: release
+    dist_git_branches:
+      - fedora-all
+      - epel-9
+  - job: koji_build
+    trigger: commit
+    dist_git_branches:
+      - fedora-all
+      - epel-9
+  - job: bodhi_update
+    trigger: commit
+    dist_git_branches:
+      - fedora-branched
       - epel-9
