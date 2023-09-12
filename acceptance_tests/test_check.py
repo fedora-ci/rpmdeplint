@@ -6,29 +6,24 @@
 import os
 import shutil
 import time
+from pathlib import Path
 
 from rpmfluff import SimpleRpmBuild, SourceFile
 from rpmfluff.yumrepobuild import YumRepoBuild
 
 from data_setup import run_rpmdeplint
-from rpmdeplint.repodata import cache_base_path
+from rpmdeplint.repodata import cache_entry_path
 
 
-def expected_cache_path(repodir, suffix, old=False):
+def expected_cache_path(repodir: str, suffix: str, old=False) -> Path:
     """
     For the test repo located in *repodir*, return the path within the
     rpmdeplint cache where we expect the metadata file with given suffix
     to appear after rpmdeplint has downloaded it.
     """
-    (filename,) = (
-        filename
-        for filename in os.listdir(os.path.join(repodir, "repodata"))
-        if filename.endswith(suffix)
-    )
-    checksum = filename.split("-", 1)[0]
-    if old:
-        return os.path.join(cache_base_path(), checksum[:1], checksum[1:], filename)
-    return os.path.join(cache_base_path(), checksum[:1], checksum[1:])
+    file = next(Path(repodir, "repodata").glob(f"*{suffix}"))
+    checksum = file.name.split("-", 1)[0]
+    return cache_entry_path(checksum) / file.name if old else cache_entry_path(checksum)
 
 
 def test_finds_all_problems(request, dir_server):
@@ -150,8 +145,8 @@ def test_cache_is_used_when_available(request, dir_server):
     )
 
     cache_path = expected_cache_path(baserepo.repoDir, "primary.xml.gz")
-    assert os.path.exists(cache_path)
-    original_cache_mtime = os.path.getmtime(cache_path)
+    assert cache_path.exists()
+    original_cache_mtime = cache_path.stat().st_mtime
 
     # A single run of rpmdeplint with a clean cache should expect network
     # requests for - repomd.xml, primary.xml.gz and filelists.xml.gz. Requiring
@@ -167,7 +162,7 @@ def test_cache_is_used_when_available(request, dir_server):
         ]
     )
 
-    new_cache_mtime = os.path.getmtime(cache_path)
+    new_cache_mtime = cache_path.stat().st_mtime
     assert new_cache_mtime > original_cache_mtime
 
     # Executing 2 subprocesses should expect 4 requests if repodata cache is
@@ -207,8 +202,8 @@ def test_cache_doesnt_grow_unboundedly(request, dir_server):
         firstrepo.repoDir, "filelists.xml.gz"
     )
 
-    assert os.path.exists(first_primary_cache_path)
-    assert os.path.exists(first_filelists_cache_path)
+    assert first_primary_cache_path.exists()
+    assert first_filelists_cache_path.exists()
 
     p2 = SimpleRpmBuild("b", "0.1", "1", ["i386"])
     secondrepo = YumRepoBuild((p2,))
@@ -242,10 +237,10 @@ def test_cache_doesnt_grow_unboundedly(request, dir_server):
     )
 
     # Ensure the cache only has files from the second one
-    assert not os.path.exists(first_primary_cache_path)
-    assert not os.path.exists(first_filelists_cache_path)
-    assert os.path.exists(second_primary_cache_path)
-    assert os.path.exists(second_filelists_cache_path)
+    assert not first_primary_cache_path.exists()
+    assert not first_filelists_cache_path.exists()
+    assert second_primary_cache_path.exists()
+    assert second_filelists_cache_path.exists()
 
 
 def test_migrates_old_cache_layout(request, dir_server):
@@ -264,9 +259,8 @@ def test_migrates_old_cache_layout(request, dir_server):
     new_cache_path = expected_cache_path(repo.repoDir, "primary.xml.gz")
 
     # Simulate the old cache path left over from an older version of rpmdeplint
-    os.makedirs(os.path.dirname(old_cache_path))
-    with open(old_cache_path, "w") as f:
-        f.write("lol\n")
+    old_cache_path.parent.mkdir(parents=True)
+    old_cache_path.write_text("lol\n")
 
     exitcode, out, err = run_rpmdeplint(
         [
@@ -278,8 +272,8 @@ def test_migrates_old_cache_layout(request, dir_server):
     )
     assert exitcode == 0
     assert err == ""
-    assert not os.path.exists(old_cache_path)
-    assert os.path.isfile(new_cache_path)
+    assert not old_cache_path.exists()
+    assert new_cache_path.is_file()
 
 
 def test_prints_error_on_repo_download_failure(request, dir_server):
@@ -315,9 +309,8 @@ def test_prints_error_on_repodata_file_download_failure(request, dir_server):
     p1.add_requires("unsatisfied")
     repo = YumRepoBuild([p1])
     repo.make("x86_64")
-    for repodata_filename in os.listdir(os.path.join(repo.repoDir, "repodata")):
-        if "primary" in repodata_filename:
-            os.unlink(os.path.join(repo.repoDir, "repodata", repodata_filename))
+    for repodata_filename in Path(repo.repoDir, "repodata").glob("*primary*"):
+        repodata_filename.unlink()
     dir_server.basepath = repo.repoDir
 
     def cleanUp():

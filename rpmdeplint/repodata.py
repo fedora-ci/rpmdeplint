@@ -12,7 +12,9 @@ import os
 import shutil
 import tempfile
 import time
-from os import scandir  # Python 3.5+
+from os import getenv
+from pathlib import Path
+from typing import Dict, Optional, BinaryIO
 
 import librepo
 import requests
@@ -42,7 +44,7 @@ class RepoDownloadError(Exception):
     pass
 
 
-def get_yumvars():
+def get_yumvars() -> Dict[str, str]:
     # This is not all the yumvars, but hopefully good enough...
 
     try:
@@ -79,43 +81,37 @@ def get_yumvars():
     }
 
 
-def substitute_yumvars(s, yumvars):
+def substitute_yumvars(s: str, yumvars: Dict[str, str]) -> str:
     for name, value in yumvars.items():
         s = s.replace(f"${name}", value)
     return s
 
 
-def cache_base_path():
-    default_cache_home = os.path.join(os.path.expanduser("~"), ".cache")
-    cache_home = os.environ.get("XDG_CACHE_HOME", default_cache_home)
-    return os.path.join(cache_home, "rpmdeplint")
+def cache_base_path() -> Path:
+    default_cache_home = Path.home() / ".cache"
+    return Path(getenv("XDG_CACHE_HOME", default_cache_home)) / "rpmdeplint"
 
 
-def cache_entry_path(checksum):
-    return os.path.join(cache_base_path(), checksum[:1], checksum[1:])
+def cache_entry_path(checksum: str) -> Path:
+    return cache_base_path() / checksum[:1] / checksum[1:]
 
 
 def clean_cache():
     expiry_time = time.time() - float(
         os.environ.get("RPMDEPLINT_EXPIRY_SECONDS", "604800")
     )
-    try:
-        subdirs = scandir(cache_base_path())
-    except OSError as e:
-        if e.errno == errno.ENOENT:
-            return  # nothing to do
-        else:
-            raise
-    for subdir in subdirs:
+    if not cache_base_path().is_dir():
+        return  # nothing to do
+    for subdir in cache_base_path().iterdir():
         # Should be a subdirectory named after the first checksum letter
-        if not subdir.is_dir(follow_symlinks=False):
+        if not subdir.is_dir():
             continue
-        for entry in scandir(subdir.path):
-            if not entry.is_file(follow_symlinks=False):
+        for entry in subdir.iterdir():
+            if not entry.is_file():
                 continue
             if entry.stat().st_mtime < expiry_time:
-                logger.debug("Purging expired cache file %s", entry.path)
-                os.unlink(entry.path)
+                logger.debug("Purging expired cache file %s", entry)
+                entry.unlink()
 
 
 class Repo:
@@ -171,7 +167,11 @@ class Repo:
                 )
 
     def __init__(
-        self, repo_name, baseurl=None, metalink=None, skip_if_unavailable=False
+        self,
+        repo_name: str,
+        baseurl: Optional[str] = None,
+        metalink: Optional[str] = None,
+        skip_if_unavailable: bool = False,
     ):
         """
         :param repo_name: Name of the repository, for example "fedora-updates"
@@ -231,15 +231,15 @@ class Repo:
                 self.filelists_checksum, self.filelists_url
             )
 
-    def _download_metadata_result(self, handle, result):
+    def _download_metadata_result(self, handle: librepo.Handle, result: librepo.Result):
         try:
             handle.perform(result)
         except librepo.LibrepoException as ex:
             raise RepoDownloadError(
-                "Failed to download repodata for {!r}: {}".format(self, ex.args[1])
+                f"Failed to download repodata for {self!r}: {ex.args[1]}"
             ) from ex
 
-    def _download_repodata_file(self, checksum, url):
+    def _download_repodata_file(self, checksum: str, url: str) -> BinaryIO:
         """
         Each created file in cache becomes immutable, and is referenced in
         the directory tree within XDG_CACHE_HOME as
@@ -249,7 +249,7 @@ class Repo:
         then renamed to the cache dir atomically to avoid them potentially being
         accessed before written to cache.
         """
-        filepath_in_cache = cache_entry_path(checksum)
+        filepath_in_cache: Path = cache_entry_path(checksum)
         try:
             f = open(filepath_in_cache, "rb")
         except OSError as e:
@@ -267,19 +267,10 @@ class Repo:
             logger.debug("Using cached file %s for %s", filepath_in_cache, url)
             # Bump the modtime on the cache file we are using,
             # since our cache expiry is LRU based on modtime.
-            if os.utime in getattr(os, "supports_fd", []):
-                os.utime(f.fileno())  # Python 3.3+
-            else:
-                os.utime(filepath_in_cache, None)
+            os.utime(f.fileno())  # Python 3.3+
             return f
-        try:
-            os.makedirs(os.path.dirname(filepath_in_cache))
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
-        fd, temp_path = tempfile.mkstemp(
-            dir=os.path.dirname(filepath_in_cache), text=False
-        )
+        filepath_in_cache.parent.mkdir(parents=True, exist_ok=True)
+        fd, temp_path = tempfile.mkstemp(dir=filepath_in_cache.parent, text=False)
         logger.debug("Downloading %s to cache temp file %s", url, temp_path)
         try:
             f = os.fdopen(fd, "wb+")
@@ -309,7 +300,7 @@ class Repo:
             os.unlink(temp_path)
             raise
 
-    def _is_header_complete(self, local_path):
+    def _is_header_complete(self, local_path: str) -> bool:
         """
         Returns `True` if the RPM file `local_path` has complete RPM header.
         """
@@ -334,7 +325,7 @@ class Repo:
         except FileNotFoundError:
             return False
 
-    def download_package_header(self, location, baseurl) -> str:
+    def download_package_header(self, location: str, baseurl: str) -> str:
         """
         Downloads the package header, so it can be parsed by `hdrFromFdno`.
 
@@ -397,23 +388,27 @@ class Repo:
         return self._yum_repomd
 
     @property
-    def repomd_fn(self):
+    def repomd_fn(self) -> str:
         return os.path.join(self._root_path, "repodata", "repomd.xml")
 
     @property
-    def primary_url(self):
+    def primary_url(self) -> str:
+        if not self.baseurl:
+            raise RuntimeError("baseurl not specified")
         return os.path.join(self.baseurl, self.yum_repomd["primary"]["location_href"])
 
     @property
-    def primary_checksum(self):
+    def primary_checksum(self) -> str:
         return self.yum_repomd["primary"]["checksum"]
 
     @property
-    def filelists_checksum(self):
+    def filelists_checksum(self) -> str:
         return self.yum_repomd["filelists"]["checksum"]
 
     @property
-    def filelists_url(self):
+    def filelists_url(self) -> str:
+        if not self.baseurl:
+            raise RuntimeError("baseurl not specified")
         return os.path.join(self.baseurl, self.yum_repomd["filelists"]["location_href"])
 
     def __repr__(self):

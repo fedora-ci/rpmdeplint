@@ -148,7 +148,8 @@ def comma_separated_repo(value: str) -> Repo:
         raise argparse.ArgumentTypeError(
             f"Repo {value!r} is not in the form <name>,<path>"
         )
-    return Repo(*value.split(",", 1))
+    repo_name, baseurl = value.split(",", 1)
+    return Repo(repo_name, baseurl)
 
 
 def add_common_dependency_analyzer_args(parser):
