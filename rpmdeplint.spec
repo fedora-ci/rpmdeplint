@@ -21,12 +21,10 @@ dependency graph.
 Summary:        %{summary}
 BuildRequires:  python3-devel
 BuildRequires:  make
-# These rpms don't provide python3.11dist(hawkey|librepo|solv)
+# These rpms don't provide python3.11dist(librepo|solv)
 # https://bugzilla.redhat.com/show_bug.cgi?id=2237481
-BuildRequires:  python3-hawkey
 BuildRequires:  python3-librepo
 BuildRequires:  python3-solv
-Requires:       python3-hawkey
 Requires:       python3-librepo
 Requires:       python3-solv
 

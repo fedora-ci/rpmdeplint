@@ -1,9 +1,8 @@
 Changelog
 ---------
 
-2.0
+1.5
 ~~~
-
 * Added yum repository caching which performs regular cleans for files more than
   one week old. This expiry period can be modified with the environment
   variable ``RPMDEPLINT_EXPIRY_SECONDS``.
@@ -13,6 +12,9 @@ Changelog
   protocol as a no-op for backwards compatibility.
 
 * Added ``--quiet`` option which tells rpmdeplint to only print error messages.
+
+* Use libsolv directly instead of hawkey
+  (`RHBZ#1422873 <https://bugzilla.redhat.com/show_bug.cgi?id=1422873>`__).
 
 1.4
 ~~~
