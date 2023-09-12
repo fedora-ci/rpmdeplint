@@ -1,6 +1,24 @@
 Changelog
 ---------
 
+1.6
+~~~
+* Easier development/maintaining:
+   * `pre-commit <https://pre-commit.com>`__
+   * Use `Packit <https://packit.dev>`__ to:
+      * build RPMs in `Copr <https://copr.fedorainfracloud.org/coprs/g/osci/rpmdeplint>`__
+      * run tests in `Testing Farm <https://docs.testing-farm.io>`__
+   * `Static type hints <https://docs.python.org/3/library/typing.html>`__
+   * Automatically deploy documentation to GitHub Pages
+
+* Require Python >= 3.8
+
+* Ditch ``setup.py`` in favour of `pyproject.toml <https://stackoverflow.com/questions/62983756/what-is-pyproject-toml-file-for>`__
+
+* The man page is no longer built and installed automatically.
+  Run ``'make -C docs man'`` to build it
+  (`related to RHBZ#2221957 <https://bugzilla.redhat.com/show_bug.cgi?id=2221957>`__).
+
 1.5
 ~~~
 * Added yum repository caching which performs regular cleans for files more than
@@ -15,6 +33,16 @@ Changelog
 
 * Use libsolv directly instead of hawkey
   (`RHBZ#1422873 <https://bugzilla.redhat.com/show_bug.cgi?id=1422873>`__).
+
+* Handle "installonly" packages properly
+  (`RHBZ#1465734 <https://bugzilla.redhat.com/show_bug.cgi?id=1465734>`__).
+
+* Rearrange conflict checking algorithm
+  (`RHBZ#1465736 <https://bugzilla.redhat.com/show_bug.cgi?id=1465736>`__).
+
+* Download only the package header, not complete RPMs.
+
+* Include all possible problematic rules in the problem description.
 
 1.4
 ~~~
