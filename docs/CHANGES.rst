@@ -10,6 +10,7 @@ Changelog
       * run tests in `Testing Farm <https://docs.testing-farm.io>`__
    * `Static type hints <https://docs.python.org/3/library/typing.html>`__
    * Automatically deploy documentation to GitHub Pages
+   * Automatically publish new releases to PyPI
 
 * Require Python >= 3.8
 
