@@ -5,6 +5,9 @@ prepare:
   package:
     - python3-pytest
     - python3-rpmfluff
+    # see test_conflict_is_ignored_if_file_colors_are_different
+    - gcc
+    - 'glibc-devel*i686'
 execute:
   script:
     - pytest --verbose --showlocals acceptance_tests/

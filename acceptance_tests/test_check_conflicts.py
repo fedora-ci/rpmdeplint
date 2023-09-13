@@ -272,7 +272,6 @@ def test_conflict_not_ignored_if_contents_match_but_perms_differ(request, dir_se
     )
 
 
-@pytest.mark.skip(reason="FIXME")
 def test_conflict_is_ignored_if_file_colors_are_different(request, dir_server):
     # This is part of RPM's multilib support. If two packages own the same file
     # but the file color is different in each, the preferred color wins (and
@@ -281,7 +280,10 @@ def test_conflict_is_ignored_if_file_colors_are_different(request, dir_server):
     p2 = SimpleRpmBuild("a", "0.1", "1", ["i386", "x86_64"])
     p2.add_simple_compilation(installPath="usr/bin/thing")
     baserepo = YumRepoBuild([p2])
-    baserepo.make("i386", "x86_64")
+    try:
+        baserepo.make("i386", "x86_64")
+    except RuntimeError:
+        pytest.xfail("Needs gcc & glibc-devel.686")
     dir_server.basepath = baserepo.repoDir
 
     p1 = SimpleRpmBuild("a", "0.2", "1", ["i386", "x86_64"])
@@ -299,18 +301,8 @@ def test_conflict_is_ignored_if_file_colors_are_different(request, dir_server):
     # (this was surprisingly hard to get right)
     rpmheader_32 = p1.get_built_rpm_header("i386")
     rpmheader_64 = p1.get_built_rpm_header("x86_64")
-    if hasattr(rpm, "files"):  # rpm 4.12+
-        assert 1 == rpm.files(rpmheader_32)["/usr/bin/thing"].color
-        assert 2 == rpm.files(rpmheader_64)["/usr/bin/thing"].color
-    else:  # sad old rpm < 4.12
-        fi_32 = rpm.fi(rpmheader_32)
-        while fi_32.FN() != "/usr/bin/thing":
-            fi_32.next()
-        assert fi_32.FColor() == 1
-        fi_64 = rpm.fi(rpmheader_64)
-        while fi_64.FN() != "/usr/bin/thing":
-            fi_64.next()
-        assert fi_64.FColor() == 2
+    assert 1 == rpm.files(rpmheader_32)["/usr/bin/thing"].color
+    assert 2 == rpm.files(rpmheader_64)["/usr/bin/thing"].color
 
     exitcode, out, err = run_rpmdeplint(
         [
