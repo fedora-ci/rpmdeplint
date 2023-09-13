@@ -54,17 +54,14 @@ class TestDependencyAnalyzer(TestCase):
         )
 
         dependency_set = da.try_to_install_all()
-        self.assertEqual(False, dependency_set.is_ok)
-        self.assertEqual(1, len(dependency_set.overall_problems))
-        self.assertEqual(
-            [
-                "nothing provides egg-whites needed by lemon-meringue-pie-1-0.x86_64",
-                "nothing provides egg-whites needed by lemon-meringue-pie-1-0.x86_64",
-            ],
-            dependency_set.package_dependencies["lemon-meringue-pie-1-0.x86_64"][
-                "problems"
-            ],
-        )
+        assert False is dependency_set.is_ok
+        assert len(dependency_set.overall_problems) == 1
+        assert [
+            "nothing provides egg-whites needed by lemon-meringue-pie-1-0.x86_64",
+            "nothing provides egg-whites needed by lemon-meringue-pie-1-0.x86_64",
+        ] == dependency_set.package_dependencies["lemon-meringue-pie-1-0.x86_64"][
+            "problems"
+        ]
 
         eggs = SimpleRpmBuild("eggs", "1", "3", ["noarch"])
         eggs.add_provides("egg-whites")
@@ -87,20 +84,20 @@ class TestDependencyAnalyzer(TestCase):
         )
 
         dependency_set = da.try_to_install_all()
-        self.assertEqual(True, dependency_set.is_ok)
-        self.assertEqual(
-            4,
+        assert True is dependency_set.is_ok
+        assert (
             len(
                 dependency_set.package_dependencies["lemon-meringue-pie-1-0.x86_64"][
                     "dependencies"
                 ]
-            ),
+            )
+            == 4
         )
-        self.assertEqual(
-            3,
+        assert (
             len(
                 dependency_set.package_dependencies["apple-4.9-3.x86_64"][
                     "dependencies"
                 ]
-            ),
+            )
+            == 3
         )

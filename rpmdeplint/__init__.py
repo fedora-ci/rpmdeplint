@@ -46,8 +46,6 @@ class UnreadablePackageError(Exception):
     file is not a valid RPM package, etc).
     """
 
-    pass
-
 
 class DependencySet:
     """
@@ -56,7 +54,7 @@ class DependencySet:
 
     def __init__(self) -> None:
         self._packagedeps: defaultdict = defaultdict(
-            lambda: dict(dependencies=[], problems=[])
+            lambda: {"dependencies": [], "problems": []}
         )
         self._packages_with_problems: set[str] = set()
         self._overall_problems: set[str] = set()
@@ -149,8 +147,7 @@ class DependencyAnalyzer:
                 if repo.skip_if_unavailable:
                     logger.warning("Skipping repo %s: %s", repo.name, e)
                     continue
-                else:
-                    raise
+                raise
             solv_repo = self.pool.add_repo(repo.name)
             # solv.xfopen does not accept unicode filenames on Python 2
             solv_repo.add_rpmmd(
@@ -529,7 +526,7 @@ class DependencyAnalyzer:
                 other = transaction.othersolvable(solvable)
                 if action == transaction.SOLVER_TRANSACTION_IGNORE:
                     continue  # it's kept, so no problem here
-                elif action == transaction.SOLVER_TRANSACTION_UPGRADED:
+                if action == transaction.SOLVER_TRANSACTION_UPGRADED:
                     problems.append(
                         f"{solvable} would be upgraded by {other} from repo {other.repo.name}"
                     )

@@ -272,7 +272,7 @@ def test_migrates_old_cache_layout(request, dir_server):
     assert new_cache_path.is_file()
 
 
-def test_prints_error_on_repo_download_failure(request, dir_server):
+def test_prints_error_on_repo_download_failure(request):
     # Specifically we don't want an unhandled exception, because that triggers abrt.
     test_tool_rpm = SimpleRpmBuild("test-tool", "10", "3.el6", ["x86_64"])
     test_tool_rpm.make()

@@ -11,7 +11,7 @@ import pytest
 from rpmdeplint.repodata import Repo, RepoDownloadError, get_yumvars
 
 
-@pytest.fixture
+@pytest.fixture()
 def yumdir(tmpdir, monkeypatch):
     tmpdir.join("yum.conf").write("[main]\n")
     monkeypatch.setattr(Repo, "yum_main_config_path", str(tmpdir.join("yum.conf")))

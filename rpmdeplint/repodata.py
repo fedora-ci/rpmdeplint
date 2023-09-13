@@ -33,15 +33,11 @@ class PackageDownloadError(Exception):
     Raised if a package is being downloaded for further analysis but the download fails.
     """
 
-    pass
-
 
 class RepoDownloadError(Exception):
     """
     Raised if an error occurs downloading repodata
     """
-
-    pass
 
 
 def get_yumvars() -> dict[str, str]:
@@ -130,7 +126,7 @@ class Repo:
         """
         yumvars = get_yumvars()
         config = configparser.RawConfigParser()
-        config.read([cls.yum_main_config_path] + glob.glob(cls.yum_repos_config_glob))
+        config.read([cls.yum_main_config_path, *glob.glob(cls.yum_repos_config_glob)])
         for section in config.sections():
             if section == "main":
                 continue
@@ -287,7 +283,7 @@ class Repo:
             except OSError as e:
                 raise RepoDownloadError(
                     f"Failed to download repodata file {os.path.basename(url)} for {self!r}: {e}"
-                )
+                ) from e
             f.flush()
             f.seek(0)
             os.fchmod(f.fileno(), 0o644)

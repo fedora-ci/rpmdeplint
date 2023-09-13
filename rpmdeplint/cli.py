@@ -118,9 +118,9 @@ def cmd_list_deps(args) -> ExitCode:
 
     package_deps = dependency_set.package_dependencies
     for pkg, deps in package_deps.items():
-        deps = deps["dependencies"]
-        sys.stdout.write(f"{pkg} has {len(deps)} dependencies:\n")
-        sys.stdout.write("\n".join(["\t" + x for x in deps]))
+        _deps = deps["dependencies"]
+        sys.stdout.write(f"{pkg} has {len(_deps)} dependencies:\n")
+        sys.stdout.write("\n".join(["\t" + x for x in _deps]))
         sys.stdout.write("\n\n")
     return exit_code
 

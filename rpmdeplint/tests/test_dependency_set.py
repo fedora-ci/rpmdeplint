@@ -2,7 +2,7 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-
+from typing import ClassVar
 from unittest import TestCase
 
 from rpmdeplint import DependencySet
@@ -22,7 +22,7 @@ class test_pkg:
 
 
 class TestDependencySet(TestCase):
-    _beaker_client_deps = [
+    _beaker_client_deps: ClassVar[list[str]] = [
         "basesystem-11-1.fc23.noarch",
         "bash-4.3.42-1.fc23.x86_64",
         "beaker-common-22.1-1.fc22.noarch",
@@ -82,13 +82,12 @@ class TestDependencySet(TestCase):
         beaker_common = "beaker-common-22.1-1.fc22.noarch"
         ds.add_package(
             beaker_common,
-            map(lambda x: test_pkg(x, "fedora_23"), self._beaker_client_deps),
+            (test_pkg(x, "fedora_23") for x in self._beaker_client_deps),
             [],
         )
 
-        self.assertEqual(1, len(ds.packages))
-        self.assertEqual(beaker_common, ds.packages[0])
-        self.assertEqual(
-            len(self._beaker_client_deps),
-            len(ds.package_dependencies[beaker_common]["dependencies"]),
+        assert len(ds.packages) == 1
+        assert beaker_common == ds.packages[0]
+        assert len(self._beaker_client_deps) == len(
+            ds.package_dependencies[beaker_common]["dependencies"]
         )
