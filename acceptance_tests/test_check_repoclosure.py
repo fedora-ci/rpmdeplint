@@ -38,7 +38,7 @@ def test_catches_soname_change(request, dir_server):
         [
             "rpmdeplint",
             "check-repoclosure",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p_newer.get_built_rpm("i386"),
         ]
     )
@@ -77,7 +77,7 @@ def test_catches_soname_change_with_package_rename(request, dir_server):
         [
             "rpmdeplint",
             "check-repoclosure",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p_newer.get_built_rpm("i386"),
         ]
     )
@@ -111,7 +111,7 @@ def test_ignores_dependency_problems_in_packages_under_test(request, dir_server)
         [
             "rpmdeplint",
             "check-repoclosure",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -151,7 +151,7 @@ def test_ignores_problems_in_older_packages(request, dir_server):
         [
             "rpmdeplint",
             "check-repoclosure",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p_newer.get_built_rpm("i386"),
         ]
     )
@@ -190,7 +190,7 @@ def test_ignores_problems_in_obsoleted_packages(request, dir_server):
         [
             "rpmdeplint",
             "check-repoclosure",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p_newer.get_built_rpm("i386"),
         ]
     )
@@ -221,7 +221,7 @@ def test_warns_on_preexisting_repoclosure_problems(request, dir_server):
         [
             "rpmdeplint",
             "check-repoclosure",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -257,7 +257,7 @@ def test_works_on_different_platform_to_current(request, dir_server):
         [
             "rpmdeplint",
             "check-repoclosure",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             package_to_test.get_built_rpm("ppc64"),
         ]
     )
@@ -293,7 +293,7 @@ def test_arch_set_manually_is_passed_to_sack(request, dir_server):
             "rpmdeplint",
             "check-repoclosure",
             "--arch=i586",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             package_to_test.get_built_rpm("i586"),
         ]
     )
@@ -307,7 +307,7 @@ def test_arch_set_manually_is_passed_to_sack(request, dir_server):
             "rpmdeplint",
             "check-repoclosure",
             "--arch=i686",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             package_to_test.get_built_rpm("i586"),
         ]
     )

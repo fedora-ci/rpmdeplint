@@ -31,7 +31,7 @@ def test_finds_newer_version_in_repo(request, dir_server):
         [
             "rpmdeplint",
             "check-upgrade",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             "--arch=x86_64",
             p1.get_built_rpm("noarch"),
         ]
@@ -65,7 +65,7 @@ def test_finds_obsoleting_package_in_repo(request, dir_server):
         [
             "rpmdeplint",
             "check-upgrade",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -98,7 +98,7 @@ def test_epoch(request, dir_server):
         [
             "rpmdeplint",
             "check-upgrade",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             "--arch=x86_64",
             p1.get_built_rpm("noarch"),
         ]

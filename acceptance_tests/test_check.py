@@ -66,7 +66,7 @@ def test_finds_all_problems(request, dir_server):
     request.addfinalizer(cleanUp)
 
     exitcode, out, err = run_rpmdeplint(
-        ["rpmdeplint", "check", "--repo=base,{}".format(dir_server.url)]
+        ["rpmdeplint", "check", f"--repo=base,{dir_server.url}"]
         + [p.get_built_rpm("i386") for p in test_packages]
     )
     assert exitcode == 3
@@ -107,7 +107,7 @@ def test_guesses_arch_when_combined_with_noarch_package(request, dir_server):
         [
             "rpmdeplint",
             "check",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p_noarch.get_built_rpm("noarch"),
             p_archful.get_built_rpm("i386"),
         ]
@@ -139,7 +139,7 @@ def test_cache_is_used_when_available(request, dir_server):
         [
             "rpmdeplint",
             "check",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -157,7 +157,7 @@ def test_cache_is_used_when_available(request, dir_server):
         [
             "rpmdeplint",
             "check",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -191,7 +191,7 @@ def test_cache_doesnt_grow_unboundedly(request, dir_server):
         [
             "rpmdeplint",
             "check",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -223,7 +223,7 @@ def test_cache_doesnt_grow_unboundedly(request, dir_server):
         [
             "rpmdeplint",
             "check",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p2.get_built_rpm("i386"),
         ]
     )
@@ -266,7 +266,7 @@ def test_migrates_old_cache_layout(request, dir_server):
         [
             "rpmdeplint",
             "check",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -323,7 +323,7 @@ def test_prints_error_on_repodata_file_download_failure(request, dir_server):
         [
             "rpmdeplint",
             "check",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("x86_64"),
         ]
     )

@@ -56,3 +56,13 @@ rpmdeplint = "rpmdeplint.cli:main"
 [tool.hatch.version]
 source = "vcs"
 raw-options.version_scheme = "post-release"
+
+[tool.ruff]
+select = [
+  "E",   # pycodestyle Error
+  "W",   # pycodestyle Warning
+  "F",   # Pyflakes
+  "I",   # isort
+  "UP",  # pyupgrade
+]
+line-length = 100

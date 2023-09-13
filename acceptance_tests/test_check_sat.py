@@ -31,7 +31,7 @@ def test_shows_error_for_rpms(request, dir_server):
         [
             "rpmdeplint",
             "check-sat",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )

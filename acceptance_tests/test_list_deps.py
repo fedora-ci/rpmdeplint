@@ -31,7 +31,7 @@ def test_lists_dependencies_for_rpms(request, dir_server):
         [
             "rpmdeplint",
             "list-deps",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -62,7 +62,7 @@ def test_lists_dependencies_for_rpms_served_from_filesystem(request):
         [
             "rpmdeplint",
             "list-deps",
-            "--repo=base,{}".format(baserepo.repoDir),
+            f"--repo=base,{baserepo.repoDir}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -90,7 +90,7 @@ def test_errors_out_for_unsatisfiable_deps(request, dir_server):
         [
             "rpmdeplint",
             "list-deps",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -111,7 +111,7 @@ def test_rpmdeplint_errors_on_unavailble_url(request):
         [
             "rpmdeplint",
             "list-deps",
-            "--repo=base,{}".format(url),
+            f"--repo=base,{url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -147,11 +147,9 @@ def test_handles_invalid_rpm_without_crashing(request, dir_server, tmpdir):
         [
             "rpmdeplint",
             "list-deps",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             broken_package.strpath,
         ]
     )
     assert exitcode == 1
-    assert err == "Failed to read package: {}: not a rpm\n".format(
-        broken_package.strpath
-    )
+    assert err == f"Failed to read package: {broken_package.strpath}: not a rpm\n"

@@ -286,8 +286,7 @@ class Repo:
                 response.close()
             except OSError as e:
                 raise RepoDownloadError(
-                    "Failed to download repodata file %s for %r: %s"
-                    % (os.path.basename(url), self, e)
+                    f"Failed to download repodata file {os.path.basename(url)} for {self!r}: {e}"
                 )
             f.flush()
             f.seek(0)
