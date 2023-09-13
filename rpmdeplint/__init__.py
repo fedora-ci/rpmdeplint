@@ -9,7 +9,7 @@ import logging
 import os
 import os.path
 from collections import defaultdict
-from typing import List, Dict, Any, Set, Iterable
+from typing import Any, Dict, Iterable, List, Set
 
 import rpm
 import solv

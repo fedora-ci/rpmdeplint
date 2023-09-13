@@ -14,7 +14,7 @@ import tempfile
 import time
 from os import getenv
 from pathlib import Path
-from typing import Dict, Optional, BinaryIO
+from typing import BinaryIO, Dict, Optional
 
 import librepo
 import requests
@@ -59,9 +59,9 @@ def get_yumvars() -> Dict[str, str]:
         return subst
 
     try:
+        import rpmUtils
         import yum
         import yum.config
-        import rpmUtils
     except ImportError:
         pass
     else:

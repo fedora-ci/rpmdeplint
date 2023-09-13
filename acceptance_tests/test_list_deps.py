@@ -5,10 +5,9 @@
 
 import shutil
 
+from data_setup import run_rpmdeplint
 from rpmfluff import SimpleRpmBuild
 from rpmfluff.yumrepobuild import YumRepoBuild
-
-from data_setup import run_rpmdeplint
 
 
 def test_lists_dependencies_for_rpms(request, dir_server):

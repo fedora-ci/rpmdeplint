@@ -9,10 +9,9 @@ import subprocess
 
 import pytest
 import rpm
+from data_setup import run_rpmdeplint
 from rpmfluff import SimpleRpmBuild, SourceFile
 from rpmfluff.yumrepobuild import YumRepoBuild
-
-from data_setup import run_rpmdeplint
 
 
 def test_finds_undeclared_file_conflict(request, dir_server):

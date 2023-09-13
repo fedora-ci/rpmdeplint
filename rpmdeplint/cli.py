@@ -9,10 +9,10 @@ import logging
 import sys
 from enum import IntEnum
 from importlib import metadata
-from typing import List, Callable
+from typing import Callable, List
 
 from rpmdeplint import DependencyAnalyzer, UnreadablePackageError
-from rpmdeplint.repodata import Repo, RepoDownloadError, PackageDownloadError
+from rpmdeplint.repodata import PackageDownloadError, Repo, RepoDownloadError
 
 logger = logging.getLogger(__name__)
 

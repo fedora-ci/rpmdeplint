@@ -8,10 +8,10 @@ import shutil
 import time
 from pathlib import Path
 
+from data_setup import run_rpmdeplint
 from rpmfluff import SimpleRpmBuild, SourceFile
 from rpmfluff.yumrepobuild import YumRepoBuild
 
-from data_setup import run_rpmdeplint
 from rpmdeplint.repodata import cache_entry_path
 
 

@@ -5,10 +5,9 @@
 
 import shutil
 
+from data_setup import run_rpmdeplint
 from rpmfluff import SimpleRpmBuild
 from rpmfluff.yumrepobuild import YumRepoBuild
-
-from data_setup import run_rpmdeplint
 
 
 def test_finds_newer_version_in_repo(request, dir_server):
