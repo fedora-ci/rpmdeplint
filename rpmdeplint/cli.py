@@ -7,9 +7,9 @@
 import argparse
 import logging
 import sys
+from collections.abc import Callable
 from enum import IntEnum
 from importlib import metadata
-from typing import Callable, List
 
 from rpmdeplint import DependencyAnalyzer, UnreadablePackageError
 from rpmdeplint.repodata import PackageDownloadError, Repo, RepoDownloadError
@@ -25,7 +25,7 @@ class ExitCode(IntEnum):
     FAILED = 3
 
 
-def log_problems(message: str, _problems: List[str]) -> ExitCode:
+def log_problems(message: str, _problems: list[str]) -> ExitCode:
     sys.stderr.write(f"{message}:\n")
     sys.stderr.write("\n".join(_problems) + "\n")
     return ExitCode.FAILED
@@ -195,7 +195,9 @@ def validate_common_dependency_analyzer_args(parser, args):
 
 
 def main():
-    def add_subparser(subcommand: str, _help: str, subcommand_func: Callable):
+    def add_subparser(
+        subcommand: str, _help: str, subcommand_func: Callable[..., ExitCode]
+    ):
         parser_check = subparsers.add_parser(
             subcommand, help=help, description=subcommand_func.__doc__
         )

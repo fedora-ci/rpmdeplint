@@ -13,7 +13,7 @@ description = "Rpmdeplint is a tool to find errors in RPM packages in the contex
 readme = "README.md"
 license = "GPL-2.0-or-later"
 license-files = { paths = ["COPYING"] }
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
     "Environment :: Console",
     "Intended Audience :: Developers",
@@ -66,3 +66,4 @@ select = [
   "UP",  # pyupgrade
 ]
 line-length = 100
+target-version = "py39"

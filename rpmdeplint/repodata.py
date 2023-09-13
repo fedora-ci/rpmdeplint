@@ -14,7 +14,7 @@ import tempfile
 import time
 from os import getenv
 from pathlib import Path
-from typing import BinaryIO, Dict, Optional
+from typing import BinaryIO, Optional
 
 import librepo
 import requests
@@ -44,7 +44,7 @@ class RepoDownloadError(Exception):
     pass
 
 
-def get_yumvars() -> Dict[str, str]:
+def get_yumvars() -> dict[str, str]:
     # This is not all the yumvars, but hopefully good enough...
 
     try:
@@ -81,7 +81,7 @@ def get_yumvars() -> Dict[str, str]:
     }
 
 
-def substitute_yumvars(s: str, yumvars: Dict[str, str]) -> str:
+def substitute_yumvars(s: str, yumvars: dict[str, str]) -> str:
     for name, value in yumvars.items():
         s = s.replace(f"${name}", value)
     return s
