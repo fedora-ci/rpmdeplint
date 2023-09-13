@@ -15,13 +15,13 @@ from rpmfluff.yumrepobuild import YumRepoBuild
 from rpmdeplint.repodata import cache_entry_path
 
 
-def expected_cache_path(repodir: str, suffix: str, old=False) -> Path:
+def expected_cache_path(repodir: str, name: str, old=False) -> Path:
     """
     For the test repo located in *repodir*, return the path within the
     rpmdeplint cache where we expect the metadata file with given suffix
     to appear after rpmdeplint has downloaded it.
     """
-    file = next(Path(repodir, "repodata").glob(f"*{suffix}"))
+    file = next(Path(repodir, "repodata").glob(f"*-{name}.*"))
     checksum = file.name.split("-", 1)[0]
     return cache_entry_path(checksum) / file.name if old else cache_entry_path(checksum)
 
@@ -144,7 +144,7 @@ def test_cache_is_used_when_available(request, dir_server):
         ]
     )
 
-    cache_path = expected_cache_path(baserepo.repoDir, "primary.xml.gz")
+    cache_path = expected_cache_path(baserepo.repoDir, "primary.xml")
     assert cache_path.exists()
     original_cache_mtime = cache_path.stat().st_mtime
 
@@ -197,10 +197,8 @@ def test_cache_doesnt_grow_unboundedly(request, dir_server):
     )
     assert exitcode == 0
 
-    first_primary_cache_path = expected_cache_path(firstrepo.repoDir, "primary.xml.gz")
-    first_filelists_cache_path = expected_cache_path(
-        firstrepo.repoDir, "filelists.xml.gz"
-    )
+    first_primary_cache_path = expected_cache_path(firstrepo.repoDir, "primary.xml")
+    first_filelists_cache_path = expected_cache_path(firstrepo.repoDir, "filelists.xml")
 
     assert first_primary_cache_path.exists()
     assert first_filelists_cache_path.exists()
@@ -229,11 +227,9 @@ def test_cache_doesnt_grow_unboundedly(request, dir_server):
     )
     assert exitcode == 0
 
-    second_primary_cache_path = expected_cache_path(
-        secondrepo.repoDir, "primary.xml.gz"
-    )
+    second_primary_cache_path = expected_cache_path(secondrepo.repoDir, "primary.xml")
     second_filelists_cache_path = expected_cache_path(
-        secondrepo.repoDir, "filelists.xml.gz"
+        secondrepo.repoDir, "filelists.xml"
     )
 
     # Ensure the cache only has files from the second one
@@ -255,8 +251,8 @@ def test_migrates_old_cache_layout(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    old_cache_path = expected_cache_path(repo.repoDir, "primary.xml.gz", old=True)
-    new_cache_path = expected_cache_path(repo.repoDir, "primary.xml.gz")
+    old_cache_path = expected_cache_path(repo.repoDir, "primary.xml", old=True)
+    new_cache_path = expected_cache_path(repo.repoDir, "primary.xml")
 
     # Simulate the old cache path left over from an older version of rpmdeplint
     old_cache_path.parent.mkdir(parents=True)
