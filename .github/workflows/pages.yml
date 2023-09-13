@@ -6,6 +6,8 @@ on:
 
 jobs:
   pages:
+    # To not run in forks
+    if: github.repository_owner == 'fedora-ci'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
