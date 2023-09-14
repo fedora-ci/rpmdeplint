@@ -5,7 +5,7 @@ dependency graph.
 
 ## Requirements
 
-- Python 3.8
+- Python 3.9
 
 ## External Dependencies
 
@@ -13,7 +13,6 @@ In order to run the tool, the following pre-requisites need to be installed:
 
 - [rpm](http://rpm.org)
 - [librepo](https://github.com/rpm-software-management/librepo)
-- [hawkey](https://github.com/rpm-software-management/hawkey)
 - [libsolv](https://github.com/openSUSE/libsolv)
 
 For development and tests:
@@ -24,9 +23,3 @@ For development and tests:
 ## Documentation
 
 - https://fedora-ci.github.io/rpmdeplint
-
-## Using
-
-A user guide is provided by the man(1) page shipped with this tool:
-
-    man rpmdeplint

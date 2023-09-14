@@ -5,10 +5,9 @@
 
 import shutil
 
+from data_setup import run_rpmdeplint
 from rpmfluff import SimpleRpmBuild
 from rpmfluff.yumrepobuild import YumRepoBuild
-
-from data_setup import run_rpmdeplint
 
 
 def test_shows_error_for_rpms(request, dir_server):
@@ -32,7 +31,7 @@ def test_shows_error_for_rpms(request, dir_server):
         [
             "rpmdeplint",
             "check-sat",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -48,7 +47,7 @@ def test_error_if_repository_names_not_provided(tmpdir):
     exitcode, out, err = run_rpmdeplint(
         ["rpmdeplint", "check-sat", f"--repo={tmpdir.dirpath()}"]
     )
-    assert 2 == exitcode
+    assert exitcode == 2
     assert (
         f"error: argument -r/--repo: Repo '{tmpdir.dirpath()}' is not in the form <name>,<path>"
         in err

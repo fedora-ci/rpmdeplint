@@ -9,7 +9,8 @@ import logging
 import os
 import os.path
 from collections import defaultdict
-from typing import List, Dict, Any, Set, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 import rpm
 import solv
@@ -45,8 +46,6 @@ class UnreadablePackageError(Exception):
     file is not a valid RPM package, etc).
     """
 
-    pass
-
 
 class DependencySet:
     """
@@ -54,13 +53,13 @@ class DependencySet:
     """
 
     def __init__(self) -> None:
-        self._packagedeps: Dict[str, Dict[str, List]] = defaultdict(
-            lambda: dict(dependencies=[], problems=[])
+        self._packagedeps: defaultdict = defaultdict(
+            lambda: {"dependencies": [], "problems": []}
         )
-        self._packages_with_problems: Set[str] = set()
-        self._overall_problems: Set[str] = set()
+        self._packages_with_problems: set[str] = set()
+        self._overall_problems: set[str] = set()
 
-    def add_package(self, pkg, dependencies: Iterable, problems: List):
+    def add_package(self, pkg, dependencies: Iterable, problems: list):
         nevra: str = str(pkg)
         self._packagedeps[nevra]["dependencies"].extend(map(str, dependencies))
         if len(problems) != 0:
@@ -81,25 +80,25 @@ class DependencySet:
         return len(self._overall_problems) == 0
 
     @property
-    def packages(self) -> List[str]:
+    def packages(self) -> list[str]:
         return sorted(self._packagedeps.keys())
 
     @property
-    def overall_problems(self) -> List[str]:
+    def overall_problems(self) -> list[str]:
         """
         List of str dependency problems found (if any)
         """
         return sorted(self._overall_problems)
 
     @property
-    def packages_with_problems(self) -> List[str]:
+    def packages_with_problems(self) -> list[str]:
         """
         List of :py:class:`solv.Solvable` which had dependency problems
         """
         return sorted(self._packages_with_problems)
 
     @property
-    def package_dependencies(self) -> Dict[str, Dict[str, List]]:
+    def package_dependencies(self) -> dict[str, dict[str, list]]:
         """
         Dict in the form {package: {'dependencies': list of packages, 'problems': list of problems}}
         """
@@ -148,8 +147,7 @@ class DependencyAnalyzer:
                 if repo.skip_if_unavailable:
                     logger.warning("Skipping repo %s: %s", repo.name, e)
                     continue
-                else:
-                    raise
+                raise
             solv_repo = self.pool.add_repo(repo.name)
             # solv.xfopen does not accept unicode filenames on Python 2
             solv_repo.add_rpmmd(
@@ -238,7 +236,7 @@ class DependencyAnalyzer:
                 sel.add(obsoletes_rel.Selection_name())
         return sel
 
-    def find_repoclosure_problems(self) -> List[str]:
+    def find_repoclosure_problems(self) -> list[str]:
         """
         Checks for any package in the repos which would have unsatisfied
         dependencies, if the packages under test were added to the repos.
@@ -301,7 +299,7 @@ class DependencyAnalyzer:
                     problems.extend(problem_msgs)
         return problems
 
-    def _files_in_solvable(self, solvable) -> Set:
+    def _files_in_solvable(self, solvable) -> set:
         iterator = solvable.Dataiterator(
             self.pool.str2id("solvable:filelist"),
             None,
@@ -432,7 +430,7 @@ class DependencyAnalyzer:
             return True
         return False
 
-    def find_conflicts(self) -> List[str]:
+    def find_conflicts(self) -> list[str]:
         """
         Find undeclared file conflicts in the packages under test.
 
@@ -494,7 +492,7 @@ class DependencyAnalyzer:
                         filenames.remove(filename)
         return sorted(problems)
 
-    def find_upgrade_problems(self) -> List[str]:
+    def find_upgrade_problems(self) -> list[str]:
         """
         Checks for any package in the repos which would upgrade or obsolete the
         packages under test.
@@ -528,7 +526,7 @@ class DependencyAnalyzer:
                 other = transaction.othersolvable(solvable)
                 if action == transaction.SOLVER_TRANSACTION_IGNORE:
                     continue  # it's kept, so no problem here
-                elif action == transaction.SOLVER_TRANSACTION_UPGRADED:
+                if action == transaction.SOLVER_TRANSACTION_UPGRADED:
                     problems.append(
                         f"{solvable} would be upgraded by {other} from repo {other.repo.name}"
                     )

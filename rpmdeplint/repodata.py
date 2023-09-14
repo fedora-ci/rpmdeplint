@@ -14,7 +14,7 @@ import tempfile
 import time
 from os import getenv
 from pathlib import Path
-from typing import Dict, Optional, BinaryIO
+from typing import BinaryIO, Optional
 
 import librepo
 import requests
@@ -33,18 +33,14 @@ class PackageDownloadError(Exception):
     Raised if a package is being downloaded for further analysis but the download fails.
     """
 
-    pass
-
 
 class RepoDownloadError(Exception):
     """
     Raised if an error occurs downloading repodata
     """
 
-    pass
 
-
-def get_yumvars() -> Dict[str, str]:
+def get_yumvars() -> dict[str, str]:
     # This is not all the yumvars, but hopefully good enough...
 
     try:
@@ -59,9 +55,9 @@ def get_yumvars() -> Dict[str, str]:
         return subst
 
     try:
+        import rpmUtils
         import yum
         import yum.config
-        import rpmUtils
     except ImportError:
         pass
     else:
@@ -81,7 +77,7 @@ def get_yumvars() -> Dict[str, str]:
     }
 
 
-def substitute_yumvars(s: str, yumvars: Dict[str, str]) -> str:
+def substitute_yumvars(s: str, yumvars: dict[str, str]) -> str:
     for name, value in yumvars.items():
         s = s.replace(f"${name}", value)
     return s
@@ -130,7 +126,7 @@ class Repo:
         """
         yumvars = get_yumvars()
         config = configparser.RawConfigParser()
-        config.read([cls.yum_main_config_path] + glob.glob(cls.yum_repos_config_glob))
+        config.read([cls.yum_main_config_path, *glob.glob(cls.yum_repos_config_glob)])
         for section in config.sections():
             if section == "main":
                 continue
@@ -286,9 +282,8 @@ class Repo:
                 response.close()
             except OSError as e:
                 raise RepoDownloadError(
-                    "Failed to download repodata file %s for %r: %s"
-                    % (os.path.basename(url), self, e)
-                )
+                    f"Failed to download repodata file {os.path.basename(url)} for {self!r}: {e}"
+                ) from e
             f.flush()
             f.seek(0)
             os.fchmod(f.fileno(), 0o644)

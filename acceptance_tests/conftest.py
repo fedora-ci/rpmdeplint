@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 class NonSpewingWSGIRequestHandler(wsgiref.simple_server.WSGIRequestHandler):
-    def log_message(self, format, *args):
+    def log_message(self, _format, *args):
         # The default implementation writes to stderr, which makes a mess in
         # the test suite. Use stdlib logging instead so that it can be captured
         # with everything else.
-        logger.info(format, *args)
+        logger.info(_format, *args)
 
 
 class WSGIServer(Thread):
@@ -83,19 +83,19 @@ class DirServer(WSGIServer):
             return []
 
 
-@pytest.fixture
-def dir_server(request):
+@pytest.fixture()
+def dir_server():
     """
-    Defines a HTTP test server for listing directory contents.
+    Defines an HTTP test server for listing directory contents.
     """
     server = DirServer()
     server.start()
-    request.addfinalizer(server.stop)
-    return server
+    yield server
+    server.stop()
 
 
 @pytest.fixture(autouse=True)
-def rpmfluff_leak_finder(request):
+def _rpmfluff_leak_finder():
     """
     Adds a finalizer which will fail any test that has left behind
     a test-rpmbuild-* directory. These are created by rpmfluff in order to
@@ -105,8 +105,6 @@ def rpmfluff_leak_finder(request):
     re-use whatever is in the directory (even if it's wrong).
     """
 
-    def _finalize():
-        if any(entry.startswith("test-rpmbuild-") for entry in os.listdir(".")):
-            raise AssertionError("Test failed to clean up rpmfluff build directory")
-
-    request.addfinalizer(_finalize)
+    yield
+    if any(entry.startswith("test-rpmbuild-") for entry in os.listdir(".")):
+        raise AssertionError("Test failed to clean up rpmfluff build directory")

@@ -15,7 +15,7 @@ Changelog
    * Automatically deploy documentation to GitHub Pages
    * Automatically publish new releases to PyPI
 
-* Require Python >= 3.8
+* Require Python >= 3.9
 
 * Ditch ``setup.py`` in favour of `pyproject.toml <https://stackoverflow.com/questions/62983756/what-is-pyproject-toml-file-for>`__
 

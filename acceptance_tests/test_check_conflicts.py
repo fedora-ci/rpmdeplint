@@ -9,10 +9,9 @@ import subprocess
 
 import pytest
 import rpm
+from data_setup import run_rpmdeplint
 from rpmfluff import SimpleRpmBuild, SourceFile
 from rpmfluff.yumrepobuild import YumRepoBuild
-
-from data_setup import run_rpmdeplint
 
 
 def test_finds_undeclared_file_conflict(request, dir_server):
@@ -43,7 +42,7 @@ def test_finds_undeclared_file_conflict(request, dir_server):
         [
             "rpmdeplint",
             "check-conflicts",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -81,7 +80,7 @@ def test_finds_undeclared_file_conflict_with_repo_on_local_filesystem(request):
         [
             "rpmdeplint",
             "check-conflicts",
-            "--repo=base,{}".format(baserepo.repoDir),
+            f"--repo=base,{baserepo.repoDir}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -120,7 +119,7 @@ def test_package_does_not_conflict_with_earlier_version_of_itself(request, dir_s
         [
             "rpmdeplint",
             "check-conflicts",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -160,7 +159,7 @@ def test_conflict_is_ignored_for_rpm_level_conflicts(request, dir_server):
         [
             "rpmdeplint",
             "check-conflicts",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -198,7 +197,7 @@ def test_conflict_is_ignored_if_files_match(request, dir_server):
         [
             "rpmdeplint",
             "check-conflicts",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -252,7 +251,7 @@ def test_conflict_not_ignored_if_contents_match_but_perms_differ(request, dir_se
         [
             "rpmdeplint",
             "check-conflicts",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             different_mode.get_built_rpm("i386"),
             different_owner.get_built_rpm("i386"),
             different_group.get_built_rpm("i386"),
@@ -273,7 +272,6 @@ def test_conflict_not_ignored_if_contents_match_but_perms_differ(request, dir_se
     )
 
 
-@pytest.mark.skip(reason="FIXME")
 def test_conflict_is_ignored_if_file_colors_are_different(request, dir_server):
     # This is part of RPM's multilib support. If two packages own the same file
     # but the file color is different in each, the preferred color wins (and
@@ -282,7 +280,10 @@ def test_conflict_is_ignored_if_file_colors_are_different(request, dir_server):
     p2 = SimpleRpmBuild("a", "0.1", "1", ["i386", "x86_64"])
     p2.add_simple_compilation(installPath="usr/bin/thing")
     baserepo = YumRepoBuild([p2])
-    baserepo.make("i386", "x86_64")
+    try:
+        baserepo.make("i386", "x86_64")
+    except RuntimeError:
+        pytest.xfail("Needs gcc & glibc-devel.686")
     dir_server.basepath = baserepo.repoDir
 
     p1 = SimpleRpmBuild("a", "0.2", "1", ["i386", "x86_64"])
@@ -300,24 +301,14 @@ def test_conflict_is_ignored_if_file_colors_are_different(request, dir_server):
     # (this was surprisingly hard to get right)
     rpmheader_32 = p1.get_built_rpm_header("i386")
     rpmheader_64 = p1.get_built_rpm_header("x86_64")
-    if hasattr(rpm, "files"):  # rpm 4.12+
-        assert 1 == rpm.files(rpmheader_32)["/usr/bin/thing"].color
-        assert 2 == rpm.files(rpmheader_64)["/usr/bin/thing"].color
-    else:  # sad old rpm < 4.12
-        fi_32 = rpm.fi(rpmheader_32)
-        while fi_32.FN() != "/usr/bin/thing":
-            fi_32.next()
-        assert fi_32.FColor() == 1
-        fi_64 = rpm.fi(rpmheader_64)
-        while fi_64.FN() != "/usr/bin/thing":
-            fi_64.next()
-        assert fi_64.FColor() == 2
+    assert rpm.files(rpmheader_32)["/usr/bin/thing"].color == 1
+    assert rpm.files(rpmheader_64)["/usr/bin/thing"].color == 2
 
     exitcode, out, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-conflicts",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             p1.get_built_rpm("i386"),
         ]
     )
@@ -347,7 +338,7 @@ def test_does_not_fail_with_signed_rpms(request, dir_server):
     request.addfinalizer(cleanUp)
 
     exitcode, out, err = run_rpmdeplint(
-        ["rpmdeplint", "check-conflicts", "--repo=base,{}".format(dir_server.url), p1]
+        ["rpmdeplint", "check-conflicts", f"--repo=base,{dir_server.url}", p1]
     )
     assert exitcode == 3
     assert err == (
@@ -390,7 +381,7 @@ def test_conflict_is_ignored_if_not_installable_concurrently(request, dir_server
         [
             "rpmdeplint",
             "check-conflicts",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             glib_28.get_built_rpm("i686"),
             glib_28.get_built_rpm("i686", "glib-doc"),
         ]
@@ -433,7 +424,7 @@ def test_finds_conflicts_in_installonly_packages(request, dir_server):
         [
             "rpmdeplint",
             "check-conflicts",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             kernel2.get_built_rpm("i386"),
         ]
     )
@@ -483,7 +474,7 @@ def test_finds_conflict_against_older_subpackage(request, dir_server):
         [
             "rpmdeplint",
             "check-conflicts",
-            "--repo=base,{}".format(dir_server.url),
+            f"--repo=base,{dir_server.url}",
             newvim.get_built_rpm("x86_64", name="vim-common"),
             newvim.get_built_rpm("x86_64", name="vim-minimal"),
         ]
@@ -514,7 +505,7 @@ def test_obeys_xml_base_when_downloading_packages(request, tmpdir, dir_server):
     subprocess.check_output(
         [
             "createrepo_c",
-            "--baseurl={}/thepackages".format(dir_server.url),
+            f"--baseurl={dir_server.url}/thepackages",
             "--outputdir=.",
             "../thepackages",
         ],
@@ -539,7 +530,7 @@ def test_obeys_xml_base_when_downloading_packages(request, tmpdir, dir_server):
         [
             "rpmdeplint",
             "check-conflicts",
-            "--repo=base,{}/therepo".format(dir_server.url),
+            f"--repo=base,{dir_server.url}/therepo",
             p1.get_built_rpm("x86_64"),
         ]
     )
