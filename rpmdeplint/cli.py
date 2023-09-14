@@ -199,7 +199,7 @@ def main():
         subcommand: str, _help: str, subcommand_func: Callable[..., ExitCode]
     ):
         parser_check = subparsers.add_parser(
-            subcommand, help=help, description=subcommand_func.__doc__
+            subcommand, help=_help, description=subcommand_func.__doc__
         )
         add_common_dependency_analyzer_args(parser_check)
         parser_check.set_defaults(func=subcommand_func)
