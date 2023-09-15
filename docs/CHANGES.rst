@@ -1,8 +1,9 @@
 Changelog
 ---------
 
-1.6
-~~~
+2.0rc2
+~~~~~~
+
 * Easier development/maintaining:
    * `pre-commit <https://pre-commit.com>`__
    * Use `Packit <https://packit.dev>`__ to:
@@ -23,8 +24,8 @@ Changelog
   Run ``'make -C docs man'`` to build it
   (`related to RHBZ#2221957 <https://bugzilla.redhat.com/show_bug.cgi?id=2221957>`__).
 
-1.5
-~~~
+2.0rc1
+~~~~~~
 * Added yum repository caching which performs regular cleans for files more than
   one week old. This expiry period can be modified with the environment
   variable ``RPMDEPLINT_EXPIRY_SECONDS``.
