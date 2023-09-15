@@ -38,3 +38,6 @@ repos:
     rev: v1.2.0
     hooks:
       - id: validate-config
+
+ci:
+  autoupdate_schedule: monthly
