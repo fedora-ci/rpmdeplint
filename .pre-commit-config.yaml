@@ -34,3 +34,10 @@ repos:
       - id: mypy
         additional_dependencies: [types-requests, types-six]
         exclude: docs/conf.py
+  - repo: https://github.com/packit/pre-commit-hooks
+    rev: v1.2.0
+    hooks:
+      - id: validate-config
+
+ci:
+  autoupdate_schedule: monthly

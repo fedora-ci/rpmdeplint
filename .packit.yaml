@@ -5,10 +5,6 @@ upstream_project_url: https://github.com/fedora-ci/rpmdeplint
 files_to_sync:
   - rpmdeplint.spec
   - .packit.yaml
-  - src: plans/
-    dest: plans/
-  - src: .fmf/
-    dest: .fmf/
 
 actions:
   create-archive:
@@ -22,7 +18,7 @@ srpm_build_deps:
   - hatch
   - python3-hatch-vcs
 
-upstream_tag_template: rpmdeplint-{version}
+upstream_tag_template: v{version}
 
 jobs:
   - job: copr_build
