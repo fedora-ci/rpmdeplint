@@ -4,10 +4,7 @@
 # (at your option) any later version.
 
 
-import ctypes
 import logging
-import os
-import os.path
 from collections import defaultdict
 from collections.abc import Iterable
 from typing import Any
@@ -62,15 +59,16 @@ class DependencySet:
     def add_package(self, pkg, dependencies: Iterable, problems: list):
         nevra: str = str(pkg)
         self._packagedeps[nevra]["dependencies"].extend(map(str, dependencies))
-        if len(problems) != 0:
+        if problems:
             all_problems = []
             # For each problem, find all the problematic RPM "rules" which
             # lead to the problem and also include them in
             # the `overall_problems` description.
             for problem in problems:
                 all_problems.append(str(problem))
-                for rule in problem.findallproblemrules():
-                    all_problems.append(rule.info().problemstr())
+                all_problems.extend(
+                    rule.info().problemstr() for rule in problem.findallproblemrules()
+                )
             self._packagedeps[nevra]["problems"].extend(all_problems)
             self._packages_with_problems.add(nevra)
             self._overall_problems.update(all_problems)
@@ -348,9 +346,6 @@ class DependencyAnalyzer:
         Returns True if rpm would allow both the given packages to share
         ownership of the given filename.
         """
-        if not hasattr(rpm, "files"):
-            return self._file_conflict_is_permitted_rpm411(left, right, filename)
-
         ts = rpm.TransactionSet()
         ts.setVSFlags(rpm._RPMVSF_NOSIGNATURES)
 
@@ -367,60 +362,6 @@ class DependencyAnalyzer:
             )
             return True
         if left_files[filename].color != right_files[filename].color:
-            logger.debug(
-                "Conflict on %s between %s and %s permitted because colors differ",
-                filename,
-                left,
-                right,
-            )
-            return True
-        return False
-
-    def _file_conflict_is_permitted_rpm411(self, left, right, filename: str) -> bool:
-        # In rpm 4.12+ the rpmfilesCompare() function is exposed nicely as the
-        # rpm.files.matches Python method. In earlier rpm versions there is
-        # nothing equivalent in the Python bindings, although we can use ctypes
-        # to poke around and call the older rpmfiCompare() C API directly...
-        librpm = ctypes.CDLL("librpm.so.3")
-        _rpm = ctypes.CDLL(os.path.join(os.path.dirname(rpm.__file__), "_rpm.so"))
-
-        class rpmfi_s(ctypes.Structure):
-            pass
-
-        librpm.rpmfiCompare.argtypes = [
-            ctypes.POINTER(rpmfi_s),
-            ctypes.POINTER(rpmfi_s),
-        ]
-        librpm.rpmfiCompare.restype = ctypes.c_int
-        _rpm.fiFromFi.argtypes = [ctypes.py_object]
-        _rpm.fiFromFi.restype = ctypes.POINTER(rpmfi_s)
-
-        ts = rpm.TransactionSet()
-        ts.setVSFlags(rpm._RPMVSF_NOSIGNATURES)
-
-        left_hdr = ts.hdrFromFdno(open(left.lookup_location()[0], "rb"))
-        right_hdr = ts.hdrFromFdno(open(self.download_package_header(right), "rb"))
-        left_fi = rpm.fi(left_hdr)
-        try:
-            while left_fi.FN() != filename:
-                left_fi.next()
-        except StopIteration as e:
-            raise KeyError(f"Entry {filename} not found in {left}") from e
-        right_fi = rpm.fi(right_hdr)
-        try:
-            while right_fi.FN() != filename:
-                right_fi.next()
-        except StopIteration as exc:
-            raise KeyError(f"Entry {filename} not found in {right}") from exc
-        if librpm.rpmfiCompare(_rpm.fiFromFi(left_fi), _rpm.fiFromFi(right_fi)) == 0:
-            logger.debug(
-                "Conflict on %s between %s and %s permitted because files match",
-                filename,
-                left,
-                right,
-            )
-            return True
-        if left_fi.FColor() != right_fi.FColor():
             logger.debug(
                 "Conflict on %s between %s and %s permitted because colors differ",
                 filename,
