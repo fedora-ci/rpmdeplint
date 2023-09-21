@@ -230,6 +230,8 @@ class Repo:
         self.metalink = metalink
         self.skip_if_unavailable = skip_if_unavailable
 
+        self.librepo_handle: Optional[librepo.Handle] = None
+
     def download_repodata(self):
         Cache.clean()
         logger.debug(
@@ -251,7 +253,7 @@ class Repo:
         h.setopt(librepo.LRO_INTERRUPTIBLE, True)
         h.setopt(librepo.LRO_YUMDLIST, [])
         if self.baseurl and os.path.isdir(self.baseurl):
-            self._download_metadata_result(h, r)
+            self._download_metadata_result(r)
             self._yum_repomd = r.yum_repomd
             self._root_path = self.baseurl
             self.primary = open(self.primary_url, "rb")
@@ -260,7 +262,7 @@ class Repo:
             self._root_path = h.destdir = tempfile.mkdtemp(
                 self.name, prefix=REPO_CACHE_NAME_PREFIX, dir=REPO_CACHE_DIR
             )
-            self._download_metadata_result(h, r)
+            self._download_metadata_result(r)
             self._yum_repomd = r.yum_repomd
             self.primary = Cache.download_repodata_file(
                 self.primary_checksum, self.primary_url
@@ -269,9 +271,11 @@ class Repo:
                 self.filelists_checksum, self.filelists_url
             )
 
-    def _download_metadata_result(self, handle: librepo.Handle, result: librepo.Result):
+    def _download_metadata_result(self, result: librepo.Result):
+        if not self.librepo_handle:
+            raise RuntimeError("No Librepo Handle")
         try:
-            handle.perform(result)
+            self.librepo_handle.perform(result)
         except librepo.LibrepoException as ex:
             raise RepoDownloadError(
                 f"Failed to download repodata for {self!r}: {ex.args[1]}"
@@ -325,7 +329,7 @@ class Repo:
         only when complete RPM file is downloaded.
         """
         local_path = os.path.join(self._root_path, os.path.basename(location))
-        if self.librepo_handle.local:
+        if self.librepo_handle and self.librepo_handle.local:
             logger.debug("Using package %s from local filesystem directly", local_path)
             return local_path
 
