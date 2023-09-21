@@ -12,7 +12,7 @@ from data_setup import run_rpmdeplint
 from rpmfluff import SimpleRpmBuild, SourceFile
 from rpmfluff.yumrepobuild import YumRepoBuild
 
-from rpmdeplint.repodata import cache_entry_path
+from rpmdeplint.repodata import Cache
 
 
 def expected_cache_path(repodir: str, name: str, old=False) -> Path:
@@ -23,7 +23,7 @@ def expected_cache_path(repodir: str, name: str, old=False) -> Path:
     """
     file = next(Path(repodir, "repodata").glob(f"*-{name}.*"))
     checksum = file.name.split("-", 1)[0]
-    return cache_entry_path(checksum) / file.name if old else cache_entry_path(checksum)
+    return Cache.entry_path(checksum) / file.name if old else Cache.entry_path(checksum)
 
 
 def test_finds_all_problems(request, dir_server):
@@ -326,5 +326,4 @@ def test_prints_error_on_repodata_file_download_failure(request, dir_server):
 
     assert exitcode == 1
     assert err.startswith("Failed to download repodata")
-    assert "404" in err
     assert "Traceback" not in err

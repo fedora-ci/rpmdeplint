@@ -43,12 +43,12 @@ def test_shows_error_for_rpms(request, dir_server):
     assert out == ""
 
 
-def test_error_if_repository_names_not_provided(tmpdir):
+def test_error_if_repository_names_not_provided(tmp_path):
     exitcode, out, err = run_rpmdeplint(
-        ["rpmdeplint", "check-sat", f"--repo={tmpdir.dirpath()}"]
+        ["rpmdeplint", "check-sat", f"--repo={tmp_path}"]
     )
     assert exitcode == 2
     assert (
-        f"error: argument -r/--repo: Repo '{tmpdir.dirpath()}' is not in the form <name>,<path>"
+        f"error: argument -r/--repo: Repo '{tmp_path}' is not in the form <name>,<path>"
         in err
     )

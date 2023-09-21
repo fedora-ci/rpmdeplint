@@ -12,9 +12,10 @@ import os
 import shutil
 import tempfile
 import time
+from contextlib import suppress
 from os import getenv
 from pathlib import Path
-from typing import BinaryIO, Optional
+from typing import BinaryIO, Optional, Union
 
 import librepo
 import requests
@@ -40,74 +41,92 @@ class RepoDownloadError(Exception):
     """
 
 
-def get_yumvars() -> dict[str, str]:
-    # This is not all the yumvars, but hopefully good enough...
+class Cache:
+    @staticmethod
+    def base_path() -> Path:
+        default_cache_home = Path.home() / ".cache"
+        return Path(getenv("XDG_CACHE_HOME", default_cache_home)) / "rpmdeplint"
 
-    try:
-        import dnf.conf
-        import dnf.rpm
-    except ImportError:
-        pass
-    else:
-        installroot = ""
-        subst = dnf.conf.Conf().substitutions
-        subst["releasever"] = dnf.rpm.detect_releasever(installroot)
-        return subst
+    @staticmethod
+    def entry_path(checksum: str) -> Path:
+        return Cache.base_path() / checksum[:1] / checksum[1:]
 
-    try:
-        import rpmUtils
-        import yum
-        import yum.config
-    except ImportError:
-        pass
-    else:
-        return {
-            "arch": rpmUtils.arch.getCanonArch(),
-            "basearch": rpmUtils.arch.getBaseArch(),
-            "releasever": yum.config._getsysver(
-                "/", ["system-release(releasever)", "redhat-release"]
-            ),
-        }
-
-    # Probably not going to work but there's not much else we can do...
-    return {
-        "arch": "$arch",
-        "basearch": "$basearch",
-        "releasever": "$releasever",
-    }
-
-
-def substitute_yumvars(s: str, yumvars: dict[str, str]) -> str:
-    for name, value in yumvars.items():
-        s = s.replace(f"${name}", value)
-    return s
-
-
-def cache_base_path() -> Path:
-    default_cache_home = Path.home() / ".cache"
-    return Path(getenv("XDG_CACHE_HOME", default_cache_home)) / "rpmdeplint"
-
-
-def cache_entry_path(checksum: str) -> Path:
-    return cache_base_path() / checksum[:1] / checksum[1:]
-
-
-def clean_cache():
-    expiry_time = time.time() - float(
-        os.environ.get("RPMDEPLINT_EXPIRY_SECONDS", "604800")
-    )
-    if not cache_base_path().is_dir():
-        return  # nothing to do
-    for subdir in cache_base_path().iterdir():
-        # Should be a subdirectory named after the first checksum letter
-        if not subdir.is_dir():
-            continue
-        for entry in subdir.iterdir():
-            if not entry.is_file():
+    @staticmethod
+    def clean():
+        expiry_time = time.time() - float(getenv("RPMDEPLINT_EXPIRY_SECONDS", 604800))
+        if not Cache.base_path().is_dir():
+            return  # nothing to do
+        for subdir in Cache.base_path().iterdir():
+            # Should be a subdirectory named after the first checksum letter
+            if not subdir.is_dir():
                 continue
-            if entry.stat().st_mtime < expiry_time:
-                logger.debug("Purging expired cache file %s", entry)
-                entry.unlink()
+            for entry in subdir.iterdir():
+                if not entry.is_file():
+                    continue
+                if entry.stat().st_mtime < expiry_time:
+                    logger.debug("Purging expired cache file %s", entry)
+                    entry.unlink()
+
+    @staticmethod
+    def download_repodata_file(checksum: str, url: str) -> BinaryIO:
+        """
+        Each created file in cache becomes immutable, and is referenced in
+        the directory tree within XDG_CACHE_HOME as
+        $XDG_CACHE_HOME/rpmdeplint/<checksum-first-letter>/<rest-of-checksum>
+
+        Both metadata and the files to be cached are written to a tempdir first
+        then renamed to the cache dir atomically to avoid them potentially being
+        accessed before written to cache.
+        """
+        filepath_in_cache: Path = Cache.entry_path(checksum)
+        try:
+            f = open(filepath_in_cache, "rb")
+        except OSError as e:
+            if e.errno == errno.ENOENT:
+                pass  # cache entry does not exist, we will download it
+            elif e.errno == errno.EISDIR:
+                # This is the original cache directory layout, merged in commit
+                # 6f11c3708, although it didn't appear in any released version
+                # of rpmdeplint. To be helpful we will fix it up, by just
+                # deleting the directory and letting it be replaced by a file.
+                shutil.rmtree(filepath_in_cache, ignore_errors=True)
+            else:
+                raise
+        else:
+            logger.debug("Using cached file %s for %s", filepath_in_cache, url)
+            # Bump the modtime on the cache file we are using,
+            # since our cache expiry is LRU based on modtime.
+            os.utime(f.fileno())  # Python 3.3+
+            return f
+        filepath_in_cache.parent.mkdir(parents=True, exist_ok=True)
+        fd, temp_path = tempfile.mkstemp(dir=filepath_in_cache.parent, text=False)
+        logger.debug("Downloading %s to cache temp file %s", url, temp_path)
+        try:
+            f = os.fdopen(fd, "wb+")
+        except Exception:
+            os.close(fd)
+            raise
+        try:
+            try:
+                response = requests_session.get(url, stream=True)
+                response.raise_for_status()
+                for chunk in response.raw.stream(decode_content=False):
+                    f.write(chunk)
+                response.close()
+            except OSError as e:
+                raise RepoDownloadError(
+                    f"Failed to download repodata file {os.path.basename(url)}"
+                ) from e
+            f.flush()
+            f.seek(0)
+            os.fchmod(f.fileno(), 0o644)
+            os.rename(temp_path, filepath_in_cache)
+            logger.debug("Using cached file %s for %s", filepath_in_cache, url)
+            return f
+        except Exception:
+            f.close()
+            os.unlink(temp_path)
+            raise
 
 
 class Repo:
@@ -118,13 +137,36 @@ class Repo:
     yum_main_config_path = "/etc/yum.conf"
     yum_repos_config_glob = "/etc/yum.repos.d/*.repo"
 
+    @staticmethod
+    def get_yumvars() -> dict[str, str]:
+        with suppress(ModuleNotFoundError):
+            import dnf.conf
+            import dnf.rpm
+
+            subst = dnf.conf.Conf().substitutions
+            subst["releasever"] = dnf.rpm.detect_releasever(installroot="")
+            return subst
+
+        # Probably not going to work but there's not much else we can do...
+        return {
+            "arch": "$arch",
+            "basearch": "$basearch",
+            "releasever": "$releasever",
+        }
+
     @classmethod
     def from_yum_config(cls):
         """
         Yields Repo instances loaded from the system-wide Yum
         configuration in :file:`/etc/yum.conf` and :file:`/etc/yum.repos.d/`.
         """
-        yumvars = get_yumvars()
+
+        def substitute_yumvars(s: str, _yumvars: dict[str, str]) -> str:
+            for name, value in _yumvars.items():
+                s = s.replace(f"${name}", value)
+            return s
+
+        yumvars = cls.get_yumvars()
         config = configparser.RawConfigParser()
         config.read([cls.yum_main_config_path, *glob.glob(cls.yum_repos_config_glob)])
         for section in config.sections():
@@ -189,7 +231,7 @@ class Repo:
         self.skip_if_unavailable = skip_if_unavailable
 
     def download_repodata(self):
-        clean_cache()
+        Cache.clean()
         logger.debug(
             "Loading repodata for %s from %s", self.name, self.baseurl or self.metalink
         )
@@ -220,10 +262,10 @@ class Repo:
             )
             self._download_metadata_result(h, r)
             self._yum_repomd = r.yum_repomd
-            self.primary = self._download_repodata_file(
+            self.primary = Cache.download_repodata_file(
                 self.primary_checksum, self.primary_url
             )
-            self.filelists = self._download_repodata_file(
+            self.filelists = Cache.download_repodata_file(
                 self.filelists_checksum, self.filelists_url
             )
 
@@ -235,67 +277,7 @@ class Repo:
                 f"Failed to download repodata for {self!r}: {ex.args[1]}"
             ) from ex
 
-    def _download_repodata_file(self, checksum: str, url: str) -> BinaryIO:
-        """
-        Each created file in cache becomes immutable, and is referenced in
-        the directory tree within XDG_CACHE_HOME as
-        $XDG_CACHE_HOME/rpmdeplint/<checksum-first-letter>/<rest-of-checksum>
-
-        Both metadata and the files to be cached are written to a tempdir first
-        then renamed to the cache dir atomically to avoid them potentially being
-        accessed before written to cache.
-        """
-        filepath_in_cache: Path = cache_entry_path(checksum)
-        try:
-            f = open(filepath_in_cache, "rb")
-        except OSError as e:
-            if e.errno == errno.ENOENT:
-                pass  # cache entry does not exist, we will download it
-            elif e.errno == errno.EISDIR:
-                # This is the original cache directory layout, merged in commit
-                # 6f11c3708, although it didn't appear in any released version
-                # of rpmdeplint. To be helpful we will fix it up, by just
-                # deleting the directory and letting it be replaced by a file.
-                shutil.rmtree(filepath_in_cache, ignore_errors=True)
-            else:
-                raise
-        else:
-            logger.debug("Using cached file %s for %s", filepath_in_cache, url)
-            # Bump the modtime on the cache file we are using,
-            # since our cache expiry is LRU based on modtime.
-            os.utime(f.fileno())  # Python 3.3+
-            return f
-        filepath_in_cache.parent.mkdir(parents=True, exist_ok=True)
-        fd, temp_path = tempfile.mkstemp(dir=filepath_in_cache.parent, text=False)
-        logger.debug("Downloading %s to cache temp file %s", url, temp_path)
-        try:
-            f = os.fdopen(fd, "wb+")
-        except Exception:
-            os.close(fd)
-            raise
-        try:
-            try:
-                response = requests_session.get(url, stream=True)
-                response.raise_for_status()
-                for chunk in response.raw.stream(decode_content=False):
-                    f.write(chunk)
-                response.close()
-            except OSError as e:
-                raise RepoDownloadError(
-                    f"Failed to download repodata file {os.path.basename(url)} for {self!r}: {e}"
-                ) from e
-            f.flush()
-            f.seek(0)
-            os.fchmod(f.fileno(), 0o644)
-            os.rename(temp_path, filepath_in_cache)
-            logger.debug("Using cached file %s for %s", filepath_in_cache, url)
-            return f
-        except Exception:
-            f.close()
-            os.unlink(temp_path)
-            raise
-
-    def _is_header_complete(self, local_path: str) -> bool:
+    def _is_header_complete(self, local_path: Union[Path, str]) -> bool:
         """
         Returns `True` if the RPM file `local_path` has complete RPM header.
         """

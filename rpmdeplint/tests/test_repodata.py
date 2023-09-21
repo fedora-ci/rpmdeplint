@@ -3,12 +3,12 @@
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 
-import os
 import platform
+from pathlib import Path
 
 import pytest
 
-from rpmdeplint.repodata import Repo, RepoDownloadError, get_yumvars
+from rpmdeplint.repodata import Repo, RepoDownloadError
 
 
 @pytest.fixture()
@@ -73,7 +73,7 @@ def test_loads_system_yum_repo_with_substitutions(yumdir, monkeypatch):
         ensure=True,
     )
     monkeypatch.setattr(
-        "rpmdeplint.repodata.get_yumvars",
+        "rpmdeplint.repodata.Repo.get_yumvars",
         lambda: {
             "releasever": "21",
             "basearch": "s390x",
@@ -91,16 +91,12 @@ def test_yumvars():
     # also will be different in mock for example (where neither yum nor dnf are
     # present). So the best we can do is touch the code path and makes sure it
     # gives back some values.
-    yumvars = get_yumvars()
-    if (
-        "ID=fedora\nVERSION_ID=25\n" in open("/etc/os-release").read()
-        and os.path.exists("/usr/bin/dnf")
-        and platform.machine() == "x86_64"
-    ):
+    yumvars = Repo.get_yumvars()
+    if Path("/usr/bin/dnf").is_file():
         # The common case on developer's machines
-        assert yumvars["arch"] == "x86_64"
-        assert yumvars["basearch"] == "x86_64"
-        assert yumvars["releasever"] == "25"
+        assert yumvars["arch"] == platform.machine()
+        assert yumvars["basearch"] == platform.machine()
+        assert int(yumvars["releasever"])
     else:
         # Everywhere else, just assume it's fine
         assert "arch" in yumvars
