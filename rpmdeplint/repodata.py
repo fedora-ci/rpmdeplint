@@ -12,6 +12,7 @@ import os
 import shutil
 import tempfile
 import time
+from collections.abc import Iterator
 from contextlib import suppress
 from os import getenv
 from pathlib import Path
@@ -155,7 +156,7 @@ class Repo:
         }
 
     @classmethod
-    def from_yum_config(cls):
+    def from_yum_config(cls) -> Iterator["Repo"]:
         """
         Yields Repo instances loaded from the system-wide Yum
         configuration in :file:`/etc/yum.conf` and :file:`/etc/yum.repos.d/`.
@@ -243,15 +244,12 @@ class Repo:
         if self.baseurl:
             h.urls = [self.baseurl]
         if self.metalink:
-            h.mirrorlist = self.metalink
-        h.setopt(
-            librepo.LRO_DESTDIR,
-            tempfile.mkdtemp(
-                self.name, prefix=REPO_CACHE_NAME_PREFIX, dir=REPO_CACHE_DIR
-            ),
+            h.metalinkurl = self.metalink
+        h.destdir = tempfile.mkdtemp(
+            self.name, prefix=REPO_CACHE_NAME_PREFIX, dir=REPO_CACHE_DIR
         )
-        h.setopt(librepo.LRO_INTERRUPTIBLE, True)
-        h.setopt(librepo.LRO_YUMDLIST, [])
+        h.interruptible = True
+        h.yumdlist = []  # Download repomd.xml only
         if self.baseurl and os.path.isdir(self.baseurl):
             self._download_metadata_result(r)
             self._yum_repomd = r.yum_repomd
