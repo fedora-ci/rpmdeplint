@@ -5,11 +5,9 @@
 
 
 import configparser
-import errno
 import glob
 import logging
 import os
-import shutil
 import tempfile
 import time
 from collections.abc import Iterator
@@ -80,25 +78,14 @@ class Cache:
         accessed before written to cache.
         """
         filepath_in_cache: Path = Cache.entry_path(checksum)
-        try:
-            f = open(filepath_in_cache, "rb")
-        except OSError as e:
-            if e.errno == errno.ENOENT:
-                pass  # cache entry does not exist, we will download it
-            elif e.errno == errno.EISDIR:
-                # This is the original cache directory layout, merged in commit
-                # 6f11c3708, although it didn't appear in any released version
-                # of rpmdeplint. To be helpful we will fix it up, by just
-                # deleting the directory and letting it be replaced by a file.
-                shutil.rmtree(filepath_in_cache, ignore_errors=True)
-            else:
-                raise
-        else:
+        if filepath_in_cache.is_file():
+            f = filepath_in_cache.open(mode="rb")
             logger.debug("Using cached file %s for %s", filepath_in_cache, url)
             # Bump the modtime on the cache file we are using,
             # since our cache expiry is LRU based on modtime.
-            os.utime(f.fileno())  # Python 3.3+
+            os.utime(f.fileno())
             return f
+
         filepath_in_cache.parent.mkdir(parents=True, exist_ok=True)
         fd, temp_path = tempfile.mkstemp(dir=filepath_in_cache.parent, text=False)
         logger.debug("Downloading %s to cache temp file %s", url, temp_path)
