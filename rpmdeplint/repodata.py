@@ -233,12 +233,30 @@ class Repo:
 
         self.librepo_handle: Optional[librepo.Handle] = None
         self._rpmmd_repomd: Optional[dict[str, Any]] = None
+        self._root_path: str = ""
+        self.primary: Optional[BinaryIO] = None
+        self.filelists: Optional[BinaryIO] = None
 
     def download_repodata(self):
         Cache.clean()
         logger.debug(
             "Loading repodata for %s from %s", self.name, self.baseurl or self.metalink
         )
+        self._download_metadata_result()
+        if self.baseurl and os.path.isdir(self.baseurl):
+            self._root_path = self.baseurl
+            self.primary = open(self.primary_url, "rb")
+            self.filelists = open(self.filelists_url, "rb")
+        else:
+            self._root_path = self.librepo_handle.destdir
+            self.primary = Cache.download_repodata_file(
+                self.primary_checksum, self.primary_url
+            )
+            self.filelists = Cache.download_repodata_file(
+                self.filelists_checksum, self.filelists_url
+            )
+
+    def _download_metadata_result(self) -> None:
         self.librepo_handle = h = librepo.Handle()
         h.repotype = librepo.LR_YUMREPO
         if self.baseurl:
@@ -250,26 +268,7 @@ class Repo:
         )
         h.interruptible = True
         h.yumdlist = []  # Download repomd.xml only
-        if self.baseurl and os.path.isdir(self.baseurl):
-            self._download_metadata_result()
-            self._root_path = self.baseurl
-            self.primary = open(self.primary_url, "rb")
-            self.filelists = open(self.filelists_url, "rb")
-        else:
-            self._root_path = h.destdir = tempfile.mkdtemp(
-                self.name, prefix=REPO_CACHE_NAME_PREFIX, dir=REPO_CACHE_DIR
-            )
-            self._download_metadata_result()
-            self.primary = Cache.download_repodata_file(
-                self.primary_checksum, self.primary_url
-            )
-            self.filelists = Cache.download_repodata_file(
-                self.filelists_checksum, self.filelists_url
-            )
 
-    def _download_metadata_result(self) -> None:
-        if not self.librepo_handle:
-            raise RuntimeError("No Librepo Handle")
         try:
             result: librepo.Result = self.librepo_handle.perform()
         except librepo.LibrepoException as ex:
