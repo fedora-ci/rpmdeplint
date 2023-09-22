@@ -16,7 +16,7 @@ from collections.abc import Iterator
 from contextlib import suppress
 from os import getenv
 from pathlib import Path
-from typing import BinaryIO, Optional, Union
+from typing import Any, BinaryIO, Optional, Union
 
 import librepo
 import requests
@@ -232,6 +232,7 @@ class Repo:
         self.skip_if_unavailable = skip_if_unavailable
 
         self.librepo_handle: Optional[librepo.Handle] = None
+        self._rpmmd_repomd: Optional[dict[str, Any]] = None
 
     def download_repodata(self):
         Cache.clean()
@@ -239,7 +240,6 @@ class Repo:
             "Loading repodata for %s from %s", self.name, self.baseurl or self.metalink
         )
         self.librepo_handle = h = librepo.Handle()
-        r = librepo.Result()
         h.repotype = librepo.LR_YUMREPO
         if self.baseurl:
             h.urls = [self.baseurl]
@@ -251,8 +251,7 @@ class Repo:
         h.interruptible = True
         h.yumdlist = []  # Download repomd.xml only
         if self.baseurl and os.path.isdir(self.baseurl):
-            self._download_metadata_result(r)
-            self._yum_repomd = r.yum_repomd
+            self._download_metadata_result()
             self._root_path = self.baseurl
             self.primary = open(self.primary_url, "rb")
             self.filelists = open(self.filelists_url, "rb")
@@ -260,8 +259,7 @@ class Repo:
             self._root_path = h.destdir = tempfile.mkdtemp(
                 self.name, prefix=REPO_CACHE_NAME_PREFIX, dir=REPO_CACHE_DIR
             )
-            self._download_metadata_result(r)
-            self._yum_repomd = r.yum_repomd
+            self._download_metadata_result()
             self.primary = Cache.download_repodata_file(
                 self.primary_checksum, self.primary_url
             )
@@ -269,15 +267,16 @@ class Repo:
                 self.filelists_checksum, self.filelists_url
             )
 
-    def _download_metadata_result(self, result: librepo.Result):
+    def _download_metadata_result(self) -> None:
         if not self.librepo_handle:
             raise RuntimeError("No Librepo Handle")
         try:
-            self.librepo_handle.perform(result)
+            result: librepo.Result = self.librepo_handle.perform()
         except librepo.LibrepoException as ex:
             raise RepoDownloadError(
                 f"Failed to download repodata for {self!r}: {ex.args[1]}"
             ) from ex
+        self._rpmmd_repomd = result.rpmmd_repomd
 
     def _is_header_complete(self, local_path: Union[Path, str]) -> bool:
         """
@@ -363,32 +362,34 @@ class Repo:
         return target.local_path
 
     @property
-    def yum_repomd(self):
-        return self._yum_repomd
-
-    @property
-    def repomd_fn(self) -> str:
-        return os.path.join(self._root_path, "repodata", "repomd.xml")
+    def repomd(self) -> dict[str, Any]:
+        if not self._rpmmd_repomd:
+            raise RuntimeError("_rpmmd_repomd is not set")
+        return self._rpmmd_repomd
 
     @property
     def primary_url(self) -> str:
         if not self.baseurl:
             raise RuntimeError("baseurl not specified")
-        return os.path.join(self.baseurl, self.yum_repomd["primary"]["location_href"])
+        return os.path.join(
+            self.baseurl, self.repomd["records"]["primary"]["location_href"]
+        )
 
     @property
     def primary_checksum(self) -> str:
-        return self.yum_repomd["primary"]["checksum"]
+        return self.repomd["records"]["primary"]["checksum"]
 
     @property
     def filelists_checksum(self) -> str:
-        return self.yum_repomd["filelists"]["checksum"]
+        return self.repomd["records"]["filelists"]["checksum"]
 
     @property
     def filelists_url(self) -> str:
         if not self.baseurl:
             raise RuntimeError("baseurl not specified")
-        return os.path.join(self.baseurl, self.yum_repomd["filelists"]["location_href"])
+        return os.path.join(
+            self.baseurl, self.repomd["records"]["filelists"]["location_href"]
+        )
 
     def __repr__(self):
         if self.baseurl:
