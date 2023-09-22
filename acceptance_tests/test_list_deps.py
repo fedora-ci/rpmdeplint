@@ -97,7 +97,7 @@ def test_errors_out_for_unsatisfiable_deps(request, dir_server):
     assert exitcode == 3
 
 
-def test_rpmdeplint_errors_on_unavailble_url(request):
+def test_rpmdeplint_errors_on_unavailable_url(request):
     url = "http://example.test"
     p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
     p1.make()

@@ -4,9 +4,12 @@
 # (at your option) any later version.
 
 import platform
+import shutil
 from pathlib import Path
 
 import pytest
+from rpmfluff import SimpleRpmBuild
+from rpmfluff.yumrepobuild import YumRepoBuild
 
 from rpmdeplint.repodata import Repo, RepoDownloadError
 
@@ -55,6 +58,20 @@ def test_loads_system_yum_repo_with_mirrorlist(yumdir):
     assert repos[0].name == "dummy"
     assert repos[0].baseurl is None
     assert repos[0].metalink == "http://example.invalid/dummy"
+
+
+def test_loads_system_yum_repo_local(yumdir):
+    local_repo = yumdir.join("local_repo").mkdir()
+    yumdir.join("yum.repos.d", "dummy.repo").write(
+        f"[dummy]\nname=Dummy\nbaseurl=file://{local_repo}\n", ensure=True
+    )
+
+    repos = list(Repo.from_yum_config())
+    assert len(repos) == 1
+    assert repos[0].name == "dummy"
+    assert repos[0].baseurl == str(local_repo)
+    assert repos[0].is_local
+    assert repos[0].metalink is None
 
 
 def test_skips_disabled_system_yum_repo(yumdir):
@@ -129,3 +146,26 @@ def test_skip_if_unavailable_is_obeyed(yumdir):
     assert len(repos) == 1
     assert repos[0].name == "dummy"
     assert repos[0].skip_if_unavailable is True
+
+
+def test_download_repodata_from_local_repo(request):
+    satori = SimpleRpmBuild("satori", "1", "3", ["noarch"])
+    repobuild = YumRepoBuild([satori])
+    repobuild.make("noarch")
+
+    def cleanUp():
+        shutil.rmtree(repobuild.repoDir)
+        satori.clean()
+
+    request.addfinalizer(cleanUp)
+
+    repo = Repo(repo_name="dummy", baseurl=repobuild.repoDir)
+    assert repo.is_local
+    repo.download_repodata()
+    assert repo.repomd
+    assert repo.primary_checksum
+    assert repo.primary_url
+    assert repo.primary
+    assert repo.filelists_checksum
+    assert repo.filelists_url
+    assert repo.filelists

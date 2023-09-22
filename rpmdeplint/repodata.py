@@ -227,10 +227,12 @@ class Repo:
         self.name = repo_name
         if not baseurl and not metalink:
             raise RuntimeError("Must specify either baseurl or metalink for repo")
+        baseurl = baseurl and baseurl.removeprefix("file://")
         self.baseurl = baseurl
         self.metalink = metalink
         self.skip_if_unavailable = skip_if_unavailable
 
+        self.is_local = baseurl is not None and Path(baseurl).is_dir()
         self.librepo_handle: Optional[librepo.Handle] = None
         self._rpmmd_repomd: Optional[dict[str, Any]] = None
         self._root_path: str = ""
@@ -243,11 +245,13 @@ class Repo:
             "Loading repodata for %s from %s", self.name, self.baseurl or self.metalink
         )
         self._download_metadata_result()
-        if self.baseurl and os.path.isdir(self.baseurl):
+        if self.is_local:
+            # path to the local repo dir
             self._root_path = self.baseurl
             self.primary = open(self.primary_url, "rb")
             self.filelists = open(self.filelists_url, "rb")
         else:
+            # tempdir with downloaded repomd.xml and rpms
             self._root_path = self.librepo_handle.destdir
             self.primary = Cache.download_repodata_file(
                 self.primary_checksum, self.primary_url
@@ -263,11 +267,16 @@ class Repo:
             h.urls = [self.baseurl]
         if self.metalink:
             h.metalinkurl = self.metalink
-        h.destdir = tempfile.mkdtemp(
-            self.name, prefix=REPO_CACHE_NAME_PREFIX, dir=REPO_CACHE_DIR
-        )
+        if self.is_local:
+            # no files will be downloaded
+            h.local = True
+        else:
+            # tempdir for repomd.xml files and downloaded rpms
+            h.destdir = tempfile.mkdtemp(
+                self.name, prefix=REPO_CACHE_NAME_PREFIX, dir=REPO_CACHE_DIR
+            )
         h.interruptible = True
-        h.yumdlist = []  # Download repomd.xml only
+        h.yumdlist = []  # Download only repomd.xml from repodata/
 
         try:
             result: librepo.Result = self.librepo_handle.perform()
@@ -325,7 +334,7 @@ class Repo:
         only when complete RPM file is downloaded.
         """
         local_path = os.path.join(self._root_path, os.path.basename(location))
-        if self.librepo_handle and self.librepo_handle.local:
+        if self.is_local:
             logger.debug("Using package %s from local filesystem directly", local_path)
             return local_path
 
