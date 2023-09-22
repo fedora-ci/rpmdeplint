@@ -55,7 +55,7 @@ rpmdeplint = "rpmdeplint.cli:main"
 
 [tool.hatch.version]
 source = "vcs"
-raw-options.version_scheme = "post-release"
+raw-options.version_scheme = "no-guess-dev"
 
 [tool.ruff]
 select = [
