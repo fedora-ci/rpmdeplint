@@ -22,8 +22,8 @@ def test_shows_error_for_rpms(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 

@@ -61,7 +61,7 @@ def test_finds_all_problems(request, dir_server):
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
         for p in repo_packages + test_packages:
-            shutil.rmtree(p.get_base_dir())
+            p.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -98,8 +98,8 @@ def test_guesses_arch_when_combined_with_noarch_package(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p_noarch.get_base_dir())
-        shutil.rmtree(p_archful.get_base_dir())
+        p_noarch.clean()
+        p_archful.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -128,7 +128,7 @@ def test_cache_is_used_when_available(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p1.get_base_dir())
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -183,7 +183,7 @@ def test_cache_doesnt_grow_unboundedly(request, dir_server):
 
     def cleanup():
         shutil.rmtree(firstrepo.repoDir)
-        shutil.rmtree(p1.get_base_dir())
+        p1.clean()
 
     request.addfinalizer(cleanup)
 
@@ -210,7 +210,7 @@ def test_cache_doesnt_grow_unboundedly(request, dir_server):
 
     def cleanup2():
         shutil.rmtree(secondrepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
+        p2.clean()
 
     request.addfinalizer(cleanup2)
 
@@ -245,7 +245,7 @@ def test_prints_error_on_repo_download_failure(request):
     test_tool_rpm.make()
 
     def cleanUp():
-        shutil.rmtree(test_tool_rpm.get_base_dir())
+        test_tool_rpm.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -278,7 +278,7 @@ def test_prints_error_on_repodata_file_download_failure(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(repo.repoDir)
-        shutil.rmtree(p1.get_base_dir())
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 

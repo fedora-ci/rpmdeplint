@@ -22,8 +22,8 @@ def test_lists_dependencies_for_rpms(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -53,8 +53,8 @@ def test_lists_dependencies_for_rpms_served_from_filesystem(request):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -81,8 +81,8 @@ def test_errors_out_for_unsatisfiable_deps(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p1.get_base_dir())
-        shutil.rmtree(p2.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -103,7 +103,7 @@ def test_rpmdeplint_errors_on_unavailable_url(request):
     p1.make()
 
     def cleanUp():
-        shutil.rmtree(p1.get_base_dir())
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -139,7 +139,7 @@ def test_handles_invalid_rpm_without_crashing(request, dir_server, tmpdir):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
+        p2.clean()
 
     request.addfinalizer(cleanUp)
 
