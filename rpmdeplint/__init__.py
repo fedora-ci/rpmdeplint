@@ -149,10 +149,10 @@ class DependencyAnalyzer:
             solv_repo = self.pool.add_repo(repo.name)
             # solv.xfopen does not accept unicode filenames on Python 2
             solv_repo.add_rpmmd(
-                solv.xfopen_fd(str(repo.primary_url), repo.primary.fileno()), None
+                solv.xfopen_fd(repo.primary_urls[0], repo.primary.fileno()), None
             )
             solv_repo.add_rpmmd(
-                solv.xfopen_fd(str(repo.filelists_url), repo.filelists.fileno()),
+                solv.xfopen_fd(repo.filelists_urls[0], repo.filelists.fileno()),
                 None,
                 solv.Repo.REPO_EXTEND_SOLVABLES,
             )

@@ -32,7 +32,7 @@ def test_loads_system_yum_repo_with_baseurl(yumdir):
     repos = list(Repo.from_yum_config())
     assert len(repos) == 1
     assert repos[0].name == "dummy"
-    assert repos[0].baseurl == "http://example.invalid/dummy"
+    assert repos[0].urls[0] == "http://example.invalid/dummy"
     assert repos[0].metalink is None
 
 
@@ -44,7 +44,7 @@ def test_loads_system_yum_repo_with_metalink(yumdir):
     repos = list(Repo.from_yum_config())
     assert len(repos) == 1
     assert repos[0].name == "dummy"
-    assert repos[0].baseurl is None
+    assert not repos[0].urls
     assert repos[0].metalink == "http://example.invalid/dummy"
 
 
@@ -56,7 +56,7 @@ def test_loads_system_yum_repo_with_mirrorlist(yumdir):
     repos = list(Repo.from_yum_config())
     assert len(repos) == 1
     assert repos[0].name == "dummy"
-    assert repos[0].baseurl is None
+    assert not repos[0].urls
     assert repos[0].metalink == "http://example.invalid/dummy"
 
 
@@ -69,7 +69,7 @@ def test_loads_system_yum_repo_local(yumdir):
     repos = list(Repo.from_yum_config())
     assert len(repos) == 1
     assert repos[0].name == "dummy"
-    assert repos[0].baseurl == str(local_repo)
+    assert repos[0].urls[0] == str(local_repo)
     assert repos[0].is_local
     assert repos[0].metalink is None
 
@@ -100,7 +100,7 @@ def test_loads_system_yum_repo_with_substitutions(yumdir, monkeypatch):
     repos = list(Repo.from_yum_config())
     assert len(repos) == 1
     assert repos[0].name == "dummy"
-    assert repos[0].baseurl == "http://example.invalid/21/s390x/"
+    assert repos[0].urls[0] == "http://example.invalid/21/s390x/"
 
 
 def test_yumvars():
@@ -164,8 +164,8 @@ def test_download_repodata_from_local_repo(request):
     repo.download_repodata()
     assert repo.repomd
     assert repo.primary_checksum
-    assert repo.primary_url
+    assert repo.primary_urls
     assert repo.primary
     assert repo.filelists_checksum
-    assert repo.filelists_url
+    assert repo.filelists_urls
     assert repo.filelists

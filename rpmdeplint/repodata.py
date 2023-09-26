@@ -67,7 +67,7 @@ class Cache:
                     entry.unlink()
 
     @staticmethod
-    def download_repodata_file(checksum: str, url: str) -> BinaryIO:
+    def download_repodata_file(checksum: str, urls: list[str]) -> BinaryIO:
         """
         Each created file in cache becomes immutable, and is referenced in
         the directory tree within XDG_CACHE_HOME as
@@ -77,10 +77,13 @@ class Cache:
         then renamed to the cache dir atomically to avoid them potentially being
         accessed before written to cache.
         """
+        if not urls:
+            raise ValueError("No urls specified to download repodata from")
+
         filepath_in_cache: Path = Cache.entry_path(checksum)
         if filepath_in_cache.is_file():
             f = filepath_in_cache.open(mode="rb")
-            logger.debug("Using cached file %s for %s", filepath_in_cache, url)
+            logger.debug("Using cached file %s for %s", filepath_in_cache, urls[0])
             # Bump the modtime on the cache file we are using,
             # since our cache expiry is LRU based on modtime.
             os.utime(f.fileno())
@@ -88,28 +91,31 @@ class Cache:
 
         filepath_in_cache.parent.mkdir(parents=True, exist_ok=True)
         fd, temp_path = tempfile.mkstemp(dir=filepath_in_cache.parent, text=False)
-        logger.debug("Downloading %s to cache temp file %s", url, temp_path)
         try:
             f = os.fdopen(fd, "wb+")
         except Exception:
             os.close(fd)
             raise
         try:
-            try:
-                response = requests_session.get(url, stream=True)
-                response.raise_for_status()
-                for chunk in response.raw.stream(decode_content=False):
-                    f.write(chunk)
-                response.close()
-            except OSError as e:
-                raise RepoDownloadError(
-                    f"Failed to download repodata file {os.path.basename(url)}"
-                ) from e
+            for index, url in enumerate(urls):
+                try:
+                    logger.debug("Downloading %s", url)
+                    response = requests_session.get(url, stream=True)
+                    response.raise_for_status()
+                    for chunk in response.raw.stream(decode_content=False):
+                        f.write(chunk)
+                    response.close()
+                    break
+                except OSError as e:
+                    msg = f"Failed to download repodata file {url}, {e}"
+                    if index == len(urls) - 1:  # last url in the list
+                        raise RepoDownloadError(msg) from e
+                    logger.debug(msg)
             f.flush()
             f.seek(0)
             os.fchmod(f.fileno(), 0o644)
             os.rename(temp_path, filepath_in_cache)
-            logger.debug("Using cached file %s for %s", filepath_in_cache, url)
+            logger.debug("Cached as %s", filepath_in_cache)
             return f
         except Exception:
             f.close()
@@ -213,65 +219,75 @@ class Repo:
         """
         self.name = repo_name
         if not baseurl and not metalink:
-            raise RuntimeError("Must specify either baseurl or metalink for repo")
-        baseurl = baseurl and baseurl.removeprefix("file://")
-        self.baseurl = baseurl
+            raise ValueError("Must specify either baseurl or metalink for repo")
+        if baseurl and not baseurl.startswith("http"):
+            baseurl = baseurl.removeprefix("file://")
+            if not Path(baseurl).is_dir():
+                raise ValueError(f"baseurl {baseurl!r} is not a local directory")
+        self.urls = [baseurl] if baseurl else []
         self.metalink = metalink
         self.skip_if_unavailable = skip_if_unavailable
 
         self.is_local = baseurl is not None and Path(baseurl).is_dir()
-        self.librepo_handle: Optional[librepo.Handle] = None
+        self._librepo_handle = librepo.Handle()
         self._rpmmd_repomd: Optional[dict[str, Any]] = None
-        self._root_path: str = ""
         self.primary: Optional[BinaryIO] = None
         self.filelists: Optional[BinaryIO] = None
 
     def download_repodata(self):
         Cache.clean()
-        logger.debug(
-            "Loading repodata for %s from %s", self.name, self.baseurl or self.metalink
-        )
         self._download_metadata_result()
         if self.is_local:
-            # path to the local repo dir
-            self._root_path = self.baseurl
-            self.primary = open(self.primary_url, "rb")
-            self.filelists = open(self.filelists_url, "rb")
+            self.primary = open(self.primary_urls[0], "rb")
+            self.filelists = open(self.filelists_urls[0], "rb")
         else:
-            # tempdir with downloaded repomd.xml and rpms
-            self._root_path = self.librepo_handle.destdir
             self.primary = Cache.download_repodata_file(
-                self.primary_checksum, self.primary_url
+                self.primary_checksum, self.primary_urls
             )
             self.filelists = Cache.download_repodata_file(
-                self.filelists_checksum, self.filelists_url
+                self.filelists_checksum, self.filelists_urls
             )
 
     def _download_metadata_result(self) -> None:
-        self.librepo_handle = h = librepo.Handle()
+        def perform() -> librepo.Result:
+            try:
+                return self._librepo_handle.perform()
+            except librepo.LibrepoException as ex:
+                raise RepoDownloadError(
+                    f"Failed to download repo metadata for {self!r}: {ex.args[1]}"
+                ) from ex
+
+        logger.debug(
+            "Loading repodata for repo %r from %s",
+            self.name,
+            self.urls or self.metalink,
+        )
+
+        h = self._librepo_handle
         h.repotype = librepo.LR_YUMREPO
-        if self.baseurl:
-            h.urls = [self.baseurl]
+        if self.urls:
+            h.urls = self.urls
         if self.metalink:
             h.metalinkurl = self.metalink
         if self.is_local:
             # no files will be downloaded
             h.local = True
         else:
-            # tempdir for repomd.xml files and downloaded rpms
+            # tempdir for repomd.xml (metadata) and downloaded rpms
             h.destdir = tempfile.mkdtemp(
                 self.name, prefix=REPO_CACHE_NAME_PREFIX, dir=REPO_CACHE_DIR
             )
-        h.interruptible = True
+        h.interruptible = True  # Download is interruptible
         h.yumdlist = []  # Download only repomd.xml from repodata/
 
-        try:
-            result: librepo.Result = self.librepo_handle.perform()
-        except librepo.LibrepoException as ex:
-            raise RepoDownloadError(
-                f"Failed to download repodata for {self!r}: {ex.args[1]}"
-            ) from ex
+        result = perform()
         self._rpmmd_repomd = result.rpmmd_repomd
+
+        if self.metalink:
+            # Only download & parse metalink/mirrorlist
+            h.fetchmirrors = True
+            perform()
+            self.urls.extend(m for m in h.mirrors if m.startswith("http"))
 
     def _is_header_complete(self, local_path: Union[Path, str]) -> bool:
         """
@@ -336,7 +352,7 @@ class Repo:
                 location,
                 base_url=baseurl,
                 dest=self._root_path,
-                handle=self.librepo_handle,
+                handle=self._librepo_handle,
                 byterangestart=0,
                 byterangeend=byterangeend,
             )
@@ -357,38 +373,41 @@ class Repo:
         return target.local_path
 
     @property
+    def _root_path(self) -> str:
+        # Path to the local repo dir or
+        # tempdir with downloaded repomd.xml and rpms
+        return self.urls[0] if self.is_local else self._librepo_handle.destdir
+
+    @property
     def repomd(self) -> dict[str, Any]:
         if not self._rpmmd_repomd:
             raise RuntimeError("_rpmmd_repomd is not set")
         return self._rpmmd_repomd
 
     @property
-    def primary_url(self) -> str:
-        if not self.baseurl:
-            raise RuntimeError("baseurl not specified")
-        return os.path.join(
-            self.baseurl, self.repomd["records"]["primary"]["location_href"]
-        )
-
-    @property
     def primary_checksum(self) -> str:
         return self.repomd["records"]["primary"]["checksum"]
+
+    @property
+    def primary_urls(self) -> list[str]:
+        location_href = self.repomd["records"]["primary"]["location_href"]
+        return [os.path.join(url, location_href) for url in self.urls]
 
     @property
     def filelists_checksum(self) -> str:
         return self.repomd["records"]["filelists"]["checksum"]
 
     @property
-    def filelists_url(self) -> str:
-        if not self.baseurl:
-            raise RuntimeError("baseurl not specified")
-        return os.path.join(
-            self.baseurl, self.repomd["records"]["filelists"]["location_href"]
-        )
+    def filelists_urls(self) -> list[str]:
+        location_href = self.repomd["records"]["filelists"]["location_href"]
+        return [os.path.join(url, location_href) for url in self.urls]
 
     def __repr__(self):
-        if self.baseurl:
-            return f"{self.__class__.__name__}(repo_name={self.name!r}, baseurl={self.baseurl!r})"
-        if self.metalink:
-            return f"{self.__class__.__name__}(repo_name={self.name!r}, metalink={self.metalink!r})"
-        return f"{self.__class__.__name__}(repo_name={self.name!r})"
+        return (
+            "Repo("
+            f"repo_name={self.name!r}, "
+            f"urls={self.urls!r}, "
+            f"metalink={self.metalink!r}, "
+            f"skip_if_unavailable={self.skip_if_unavailable!r}, "
+            f"is_local={self.is_local!r})"
+        )

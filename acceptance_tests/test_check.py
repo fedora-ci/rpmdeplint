@@ -259,7 +259,7 @@ def test_prints_error_on_repo_download_failure(request):
     )
 
     assert exitcode == 1
-    assert err.startswith("Failed to download repodata")
+    assert err.startswith("Failed to download repo metadata")
     assert "Traceback" not in err
 
 
@@ -292,5 +292,5 @@ def test_prints_error_on_repodata_file_download_failure(request, dir_server):
     )
 
     assert exitcode == 1
-    assert err.startswith("Failed to download repodata")
+    assert err.startswith("Failed to download repodata file")
     assert "Traceback" not in err
