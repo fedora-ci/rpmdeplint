@@ -200,13 +200,13 @@ class Repo:
 
     def __init__(
         self,
-        repo_name: str,
+        name: str,
         baseurl: Optional[str] = None,
         metalink: Optional[str] = None,
         skip_if_unavailable: bool = False,
     ):
         """
-        :param repo_name: Name of the repository, for example "fedora-updates"
+        :param name: Name of the repository, for example "fedora-updates"
                           (used in problems and error messages)
         :param baseurl: URL or filesystem path to the base of the repository
                         (there should be a repodata subdirectory under this)
@@ -217,7 +217,7 @@ class Repo:
 
         Exactly one of the *baseurl* or *metalink* parameters must be supplied.
         """
-        self.name = repo_name
+        self.name = name
         if not baseurl and not metalink:
             raise ValueError("Must specify either baseurl or metalink for repo")
         if baseurl and not baseurl.startswith("http"):
@@ -405,7 +405,7 @@ class Repo:
     def __repr__(self):
         return (
             "Repo("
-            f"repo_name={self.name!r}, "
+            f"name={self.name!r}, "
             f"urls={self.urls!r}, "
             f"metalink={self.metalink!r}, "
             f"skip_if_unavailable={self.skip_if_unavailable!r}, "

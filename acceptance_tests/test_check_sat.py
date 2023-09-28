@@ -49,6 +49,6 @@ def test_error_if_repository_names_not_provided(tmp_path):
     )
     assert exitcode == 2
     assert (
-        f"error: argument -r/--repo: Repo '{tmp_path}' is not in the form <name>,<path>"
+        f"error: argument -r/--repo: Repo '{tmp_path}' is not in the form <name>,<url or path>"
         in err
     )

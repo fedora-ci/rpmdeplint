@@ -132,7 +132,7 @@ def test_bad_repo_url_raises_error(yumdir):
     with pytest.raises(RepoDownloadError) as rde:
         repos[0].download_repodata()
     assert "Cannot download repomd.xml" in str(rde.value)
-    assert "repo_name='dummy'" in str(rde.value)
+    assert "name='dummy'" in str(rde.value)
 
 
 def test_skip_if_unavailable_is_obeyed(yumdir):
@@ -159,7 +159,7 @@ def test_download_repodata_from_local_repo(request):
 
     request.addfinalizer(cleanUp)
 
-    repo = Repo(repo_name="dummy", baseurl=repobuild.repoDir)
+    repo = Repo(name="dummy", baseurl=repobuild.repoDir)
     assert repo.is_local
     repo.download_repodata()
     assert repo.repomd
