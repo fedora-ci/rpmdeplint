@@ -4,15 +4,26 @@
 # (at your option) any later version.
 
 
-import logging
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import Any
+from logging import getLogger
+from typing import Optional
 
 import rpm
-import solv
+from solv import (
+    Dataiterator,
+    Job,
+    Pool,
+    Problem,
+    Selection,
+    XSolvable,
+    xfopen_fd,
+)
+from solv import (
+    Repo as SolvRepo,
+)
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 installonlypkgs = [
@@ -56,7 +67,9 @@ class DependencySet:
         self._packages_with_problems: set[str] = set()
         self._overall_problems: set[str] = set()
 
-    def add_package(self, pkg, dependencies: Iterable, problems: list):
+    def add_package(
+        self, pkg: XSolvable, dependencies: Iterable, problems: list[Problem]
+    ):
         nevra: str = str(pkg)
         self._packagedeps[nevra]["dependencies"].extend(map(str, dependencies))
         if problems:
@@ -112,7 +125,12 @@ class DependencyAnalyzer:
     methods to perform each check.
     """
 
-    def __init__(self, repos: Iterable, packages: Iterable[str], arch=None):
+    def __init__(
+        self,
+        repos: Iterable,
+        packages: Iterable[str],
+        arch: Optional[str] = None,
+    ):
         """
         :param repos: An iterable of :py:class:`rpmdeplint.repodata.Repo` instances
         :param packages: An iterable of RPM package paths to be tested
@@ -120,11 +138,11 @@ class DependencyAnalyzer:
         # delayed import to avoid circular dependency
         from rpmdeplint.repodata import RepoDownloadError
 
-        self.pool = solv.Pool()
+        self.pool = Pool()
         self.pool.setarch(arch)
 
         #: List of :py:class:`solv.Solvable` to be tested (corresponding to *packages* parameter)
-        self.solvables = []
+        self.solvables: list[XSolvable] = []
         self.commandline_repo = self.pool.add_repo("@commandline")
         for rpmpath in packages:
             solvable = self.commandline_repo.add_rpm(rpmpath)
@@ -149,12 +167,12 @@ class DependencyAnalyzer:
             solv_repo = self.pool.add_repo(repo.name)
             # solv.xfopen does not accept unicode filenames on Python 2
             solv_repo.add_rpmmd(
-                solv.xfopen_fd(repo.primary_urls[0], repo.primary.fileno()), None
+                xfopen_fd(repo.primary_urls[0], repo.primary.fileno()), None
             )
             solv_repo.add_rpmmd(
-                solv.xfopen_fd(repo.filelists_urls[0], repo.filelists.fileno()),
+                xfopen_fd(repo.filelists_urls[0], repo.filelists.fileno()),
                 None,
-                solv.Repo.REPO_EXTEND_SOLVABLES,
+                SolvRepo.REPO_EXTEND_SOLVABLES,
             )
             self.repos_by_name[repo.name] = repo
 
@@ -167,8 +185,8 @@ class DependencyAnalyzer:
         # run the solver on this pool.
         multiversion_jobs = []
         for name in installonlypkgs:
-            selection = self.pool.select(name, solv.Selection.SELECTION_PROVIDES)
-            multiversion_jobs.extend(selection.jobs(solv.Job.SOLVER_MULTIVERSION))
+            selection = self.pool.select(name, Selection.SELECTION_PROVIDES)
+            multiversion_jobs.extend(selection.jobs(Job.SOLVER_MULTIVERSION))
         self.pool.setpooljobs(multiversion_jobs)
 
     # Context manager protocol is only implemented for backwards compatibility.
@@ -180,7 +198,7 @@ class DependencyAnalyzer:
     def __exit__(self, type, value, tb):
         return
 
-    def download_package_header(self, solvable) -> str:
+    def download_package_header(self, solvable: XSolvable) -> str:
         if solvable in self.solvables:
             # It's a package under test, nothing to download
             return solvable.lookup_location()[0]
@@ -200,16 +218,16 @@ class DependencyAnalyzer:
         ds = DependencySet()
         for solvable in self.solvables:
             logger.debug("Solving install jobs for %s", solvable)
-            jobs = solvable.Selection().jobs(solv.Job.SOLVER_INSTALL)
+            jobs = solvable.Selection().jobs(Job.SOLVER_INSTALL)
             if problems := solver.solve(jobs):
                 ds.add_package(solvable, [], problems)
             else:
                 ds.add_package(solvable, solver.transaction().newsolvables(), [])
         return ds
 
-    def _select_obsoleted_by(self, solvables: Iterable) -> Any:
+    def _select_obsoleted_by(self, solvables: Iterable[XSolvable]) -> Selection:
         """
-        Returns a solv.Selection matching every solvable which is "obsoleted"
+        Returns a Selection matching every solvable which is "obsoleted"
         by some solvable in the given list -- either due to an explicit
         Obsoletes relationship, or because we have a solvable with the same
         name with a higher epoch-version-release.
@@ -222,9 +240,9 @@ class DependencyAnalyzer:
             sel.add(
                 self.pool.select(
                     f"{solvable.name}.{solvable.arch} < {solvable.evr}",
-                    solv.Selection.SELECTION_NAME
-                    | solv.Selection.SELECTION_DOTARCH
-                    | solv.Selection.SELECTION_REL,
+                    Selection.SELECTION_NAME
+                    | Selection.SELECTION_DOTARCH
+                    | Selection.SELECTION_REL,
                 )
             )
             for obsoletes_rel in solvable.lookup_deparray(
@@ -275,9 +293,9 @@ class DependencyAnalyzer:
             # XXX limit available packages to compatible arches?
             # (use libsolv archpolicies somehow)
             jobs = (
-                solvable.Selection().jobs(solv.Job.SOLVER_INSTALL)
-                + obs_sel.jobs(solv.Job.SOLVER_ERASE)
-                + existing_obs_sel.jobs(solv.Job.SOLVER_ERASE)
+                solvable.Selection().jobs(Job.SOLVER_INSTALL)
+                + obs_sel.jobs(Job.SOLVER_ERASE)
+                + existing_obs_sel.jobs(Job.SOLVER_ERASE)
             )
             if solver_problems := solver.solve(jobs):
                 problem_msgs = [str(p) for p in solver_problems]
@@ -286,8 +304,8 @@ class DependencyAnalyzer:
                 # excluded) then warn about it here but don't consider it
                 # a problem.
                 jobs = solvable.Selection().jobs(
-                    solv.Job.SOLVER_INSTALL
-                ) + existing_obs_sel.jobs(solv.Job.SOLVER_ERASE)
+                    Job.SOLVER_INSTALL
+                ) + existing_obs_sel.jobs(Job.SOLVER_ERASE)
                 if existing_problems := solver.solve(jobs):
                     for p in existing_problems:
                         logger.warning(
@@ -297,21 +315,23 @@ class DependencyAnalyzer:
                     problems.extend(problem_msgs)
         return problems
 
-    def _files_in_solvable(self, solvable) -> set:
+    def _files_in_solvable(self, solvable: XSolvable) -> set[str]:
         iterator = solvable.Dataiterator(
             self.pool.str2id("solvable:filelist"),
             None,
-            solv.Dataiterator.SEARCH_FILES | solv.Dataiterator.SEARCH_COMPLETE_FILELIST,
+            Dataiterator.SEARCH_FILES | Dataiterator.SEARCH_COMPLETE_FILELIST,
         )
         return {match.str for match in iterator}
 
-    def _packages_can_be_installed_together(self, left, right) -> bool:
+    def _packages_can_be_installed_together(
+        self, left: XSolvable, right: XSolvable
+    ) -> bool:
         """
         Returns True if the given packages can be installed together.
         """
         solver = self.pool.Solver()
-        left_install_jobs = left.Selection().jobs(solv.Job.SOLVER_INSTALL)
-        right_install_jobs = right.Selection().jobs(solv.Job.SOLVER_INSTALL)
+        left_install_jobs = left.Selection().jobs(Job.SOLVER_INSTALL)
+        right_install_jobs = right.Selection().jobs(Job.SOLVER_INSTALL)
         # First check if each one can be installed on its own. If either of
         # these fails it is a warning, because it means we have no way to know
         # if they can be installed together or not.
@@ -341,7 +361,9 @@ class DependencyAnalyzer:
             return False
         return True
 
-    def _file_conflict_is_permitted(self, left, right, filename: str) -> bool:
+    def _file_conflict_is_permitted(
+        self, left: XSolvable, right: XSolvable, filename: str
+    ) -> bool:
         """
         Returns True if rpm would allow both the given packages to share
         ownership of the given filename.
@@ -446,7 +468,7 @@ class DependencyAnalyzer:
         # package in the repos is better than it, and we have a problem.
         self.pool.installed = self.commandline_repo
         try:
-            jobs = self.pool.Selection_all().jobs(solv.Job.SOLVER_UPDATE)
+            jobs = self.pool.Selection_all().jobs(Job.SOLVER_UPDATE)
             solver = self.pool.Solver()
             solver.set_flag(solver.SOLVER_FLAG_ALLOW_UNINSTALL, True)
             solver_problems = solver.solve(jobs)
