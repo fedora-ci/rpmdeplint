@@ -1,5 +1,5 @@
 Name:           rpmdeplint
-Version:        2.0
+Version:        2.0rc3
 Release:        %autorelease
 Summary:        Tool to find errors in RPM packages in the context of their dependency graph
 License:        GPL-2.0-or-later
