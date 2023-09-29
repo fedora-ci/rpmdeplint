@@ -12,10 +12,10 @@ from data_setup import run_rpmdeplint
 from rpmfluff import SimpleRpmBuild, SourceFile
 from rpmfluff.yumrepobuild import YumRepoBuild
 
-from rpmdeplint.repodata import cache_entry_path
+from rpmdeplint.repodata import Cache
 
 
-def expected_cache_path(repodir: str, name: str, old=False) -> Path:
+def expected_cache_path(repodir: str, name: str) -> Path:
     """
     For the test repo located in *repodir*, return the path within the
     rpmdeplint cache where we expect the metadata file with given suffix
@@ -23,7 +23,7 @@ def expected_cache_path(repodir: str, name: str, old=False) -> Path:
     """
     file = next(Path(repodir, "repodata").glob(f"*-{name}.*"))
     checksum = file.name.split("-", 1)[0]
-    return cache_entry_path(checksum) / file.name if old else cache_entry_path(checksum)
+    return Cache.entry_path(checksum)
 
 
 def test_finds_all_problems(request, dir_server):
@@ -61,7 +61,7 @@ def test_finds_all_problems(request, dir_server):
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
         for p in repo_packages + test_packages:
-            shutil.rmtree(p.get_base_dir())
+            p.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -98,8 +98,8 @@ def test_guesses_arch_when_combined_with_noarch_package(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p_noarch.get_base_dir())
-        shutil.rmtree(p_archful.get_base_dir())
+        p_noarch.clean()
+        p_archful.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -128,7 +128,7 @@ def test_cache_is_used_when_available(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p1.get_base_dir())
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -183,7 +183,7 @@ def test_cache_doesnt_grow_unboundedly(request, dir_server):
 
     def cleanup():
         shutil.rmtree(firstrepo.repoDir)
-        shutil.rmtree(p1.get_base_dir())
+        p1.clean()
 
     request.addfinalizer(cleanup)
 
@@ -210,7 +210,7 @@ def test_cache_doesnt_grow_unboundedly(request, dir_server):
 
     def cleanup2():
         shutil.rmtree(secondrepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
+        p2.clean()
 
     request.addfinalizer(cleanup2)
 
@@ -239,46 +239,13 @@ def test_cache_doesnt_grow_unboundedly(request, dir_server):
     assert second_filelists_cache_path.exists()
 
 
-def test_migrates_old_cache_layout(request, dir_server):
-    p1 = SimpleRpmBuild("a", "0.1", "1", ["i386"])
-    repo = YumRepoBuild([p1])
-    repo.make("i386")
-    dir_server.basepath = repo.repoDir
-
-    def cleanUp():
-        shutil.rmtree(repo.repoDir)
-        shutil.rmtree(p1.get_base_dir())
-
-    request.addfinalizer(cleanUp)
-
-    old_cache_path = expected_cache_path(repo.repoDir, "primary.xml", old=True)
-    new_cache_path = expected_cache_path(repo.repoDir, "primary.xml")
-
-    # Simulate the old cache path left over from an older version of rpmdeplint
-    old_cache_path.parent.mkdir(parents=True)
-    old_cache_path.write_text("lol\n")
-
-    exitcode, out, err = run_rpmdeplint(
-        [
-            "rpmdeplint",
-            "check",
-            f"--repo=base,{dir_server.url}",
-            p1.get_built_rpm("i386"),
-        ]
-    )
-    assert exitcode == 0
-    assert err == ""
-    assert not old_cache_path.exists()
-    assert new_cache_path.is_file()
-
-
 def test_prints_error_on_repo_download_failure(request):
     # Specifically we don't want an unhandled exception, because that triggers abrt.
     test_tool_rpm = SimpleRpmBuild("test-tool", "10", "3.el6", ["x86_64"])
     test_tool_rpm.make()
 
     def cleanUp():
-        shutil.rmtree(test_tool_rpm.get_base_dir())
+        test_tool_rpm.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -292,7 +259,7 @@ def test_prints_error_on_repo_download_failure(request):
     )
 
     assert exitcode == 1
-    assert err.startswith("Failed to download repodata")
+    assert err.startswith("Failed to download repo metadata")
     assert "Traceback" not in err
 
 
@@ -311,7 +278,7 @@ def test_prints_error_on_repodata_file_download_failure(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(repo.repoDir)
-        shutil.rmtree(p1.get_base_dir())
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -325,6 +292,5 @@ def test_prints_error_on_repodata_file_download_failure(request, dir_server):
     )
 
     assert exitcode == 1
-    assert err.startswith("Failed to download repodata")
-    assert "404" in err
+    assert err.startswith("Failed to download repodata file")
     assert "Traceback" not in err

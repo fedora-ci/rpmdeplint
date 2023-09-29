@@ -23,3 +23,7 @@ For development and tests:
 ## Documentation
 
 - https://fedora-ci.github.io/rpmdeplint
+
+## RPM builds
+
+- https://copr.fedorainfracloud.org/coprs/g/osci/rpmdeplint

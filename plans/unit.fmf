@@ -7,4 +7,4 @@ prepare:
     - python3-rpmfluff
 execute:
   script:
-    - pytest --verbose --showlocals rpmdeplint/
+    - pytest --verbose --showlocals tests/unit/

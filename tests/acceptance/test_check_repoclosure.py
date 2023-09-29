@@ -28,9 +28,9 @@ def test_catches_soname_change(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p_depending.get_base_dir())
-        shutil.rmtree(p_older.get_base_dir())
-        shutil.rmtree(p_newer.get_base_dir())
+        p_depending.clean()
+        p_older.clean()
+        p_newer.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -67,9 +67,9 @@ def test_catches_soname_change_with_package_rename(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p_depending.get_base_dir())
-        shutil.rmtree(p_older.get_base_dir())
-        shutil.rmtree(p_newer.get_base_dir())
+        p_depending.clean()
+        p_older.clean()
+        p_newer.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -102,8 +102,8 @@ def test_ignores_dependency_problems_in_packages_under_test(request, dir_server)
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -140,10 +140,10 @@ def test_ignores_problems_in_older_packages(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p_older_depending.get_base_dir())
-        shutil.rmtree(p_newer_depending.get_base_dir())
-        shutil.rmtree(p_older.get_base_dir())
-        shutil.rmtree(p_newer.get_base_dir())
+        p_older_depending.clean()
+        p_newer_depending.clean()
+        p_older.clean()
+        p_newer.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -179,10 +179,10 @@ def test_ignores_problems_in_obsoleted_packages(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p_obsolete_depending.get_base_dir())
-        shutil.rmtree(p_newer_depending.get_base_dir())
-        shutil.rmtree(p_older.get_base_dir())
-        shutil.rmtree(p_newer.get_base_dir())
+        p_obsolete_depending.clean()
+        p_newer_depending.clean()
+        p_older.clean()
+        p_newer.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -212,8 +212,8 @@ def test_warns_on_preexisting_repoclosure_problems(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -247,9 +247,9 @@ def test_works_on_different_platform_to_current(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(grep.get_base_dir())
-        shutil.rmtree(needs_grep.get_base_dir())
-        shutil.rmtree(package_to_test.get_base_dir())
+        grep.clean()
+        needs_grep.clean()
+        package_to_test.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -282,9 +282,9 @@ def test_arch_set_manually_is_passed_to_sack(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(grep.get_base_dir())
-        shutil.rmtree(needs_grep.get_base_dir())
-        shutil.rmtree(package_to_test.get_base_dir())
+        grep.clean()
+        needs_grep.clean()
+        package_to_test.clean()
 
     request.addfinalizer(cleanUp)
 

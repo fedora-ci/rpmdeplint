@@ -22,8 +22,8 @@ def test_shows_error_for_rpms(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -43,12 +43,9 @@ def test_shows_error_for_rpms(request, dir_server):
     assert out == ""
 
 
-def test_error_if_repository_names_not_provided(tmpdir):
+def test_error_if_repository_names_not_provided(tmp_path):
     exitcode, out, err = run_rpmdeplint(
-        ["rpmdeplint", "check-sat", f"--repo={tmpdir.dirpath()}"]
+        ["rpmdeplint", "check-sat", f"--repo={tmp_path}"]
     )
     assert exitcode == 2
-    assert (
-        f"error: argument -r/--repo: Repo '{tmpdir.dirpath()}' is not in the form <name>,<path>"
-        in err
-    )
+    assert f"error: argument -r/--repo: invalid repo value: '{tmp_path}'" in err

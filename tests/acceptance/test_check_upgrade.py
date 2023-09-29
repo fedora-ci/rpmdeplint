@@ -22,8 +22,8 @@ def test_finds_newer_version_in_repo(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -56,8 +56,8 @@ def test_finds_obsoleting_package_in_repo(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -89,8 +89,8 @@ def test_epoch(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 

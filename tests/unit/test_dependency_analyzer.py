@@ -8,7 +8,7 @@ from unittest import TestCase
 from rpmfluff import SimpleRpmBuild
 from rpmfluff.yumrepobuild import YumRepoBuild
 
-from rpmdeplint import DependencyAnalyzer
+from rpmdeplint.analyzer import DependencyAnalyzer
 from rpmdeplint.repodata import Repo
 
 
@@ -46,7 +46,7 @@ class TestDependencyAnalyzer(TestCase):
         self.addCleanup(lemon_meringue_pie.clean)
 
         da = DependencyAnalyzer(
-            repos=[Repo(repo_name="base_1", baseurl=base_1_repo.repoDir)],
+            repos=[Repo(name="base_1", baseurl=base_1_repo.repoDir)],
             packages=[
                 apple.get_built_rpm("x86_64"),
                 lemon_meringue_pie.get_built_rpm("x86_64"),
@@ -74,8 +74,8 @@ class TestDependencyAnalyzer(TestCase):
 
         da = DependencyAnalyzer(
             repos=[
-                Repo(repo_name="base_1", baseurl=base_1_repo.repoDir),
-                Repo(repo_name="base_2", baseurl=base_2_repo.repoDir),
+                Repo(name="base_1", baseurl=base_1_repo.repoDir),
+                Repo(name="base_2", baseurl=base_2_repo.repoDir),
             ],
             packages=[
                 apple.get_built_rpm("x86_64"),

@@ -33,8 +33,8 @@ def test_finds_undeclared_file_conflict(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -71,8 +71,8 @@ def test_finds_undeclared_file_conflict_with_repo_on_local_filesystem(request):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -110,8 +110,8 @@ def test_package_does_not_conflict_with_earlier_version_of_itself(request, dir_s
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -150,8 +150,8 @@ def test_conflict_is_ignored_for_rpm_level_conflicts(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -188,8 +188,8 @@ def test_conflict_is_ignored_if_files_match(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -240,10 +240,10 @@ def test_conflict_not_ignored_if_contents_match_but_perms_differ(request, dir_se
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(basepackage.get_base_dir())
-        shutil.rmtree(different_mode.get_base_dir())
-        shutil.rmtree(different_owner.get_base_dir())
-        shutil.rmtree(different_group.get_base_dir())
+        basepackage.clean()
+        different_mode.clean()
+        different_owner.clean()
+        different_group.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -292,8 +292,8 @@ def test_conflict_is_ignored_if_file_colors_are_different(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -333,7 +333,7 @@ def test_does_not_fail_with_signed_rpms(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(p2.get_base_dir())
+        p2.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -372,8 +372,8 @@ def test_conflict_is_ignored_if_not_installable_concurrently(request, dir_server
 
     def cleanUp():
         shutil.rmtree(repo.repoDir)
-        shutil.rmtree(glib_28.get_base_dir())
-        shutil.rmtree(glib_26.get_base_dir())
+        glib_28.clean()
+        glib_26.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -415,8 +415,8 @@ def test_finds_conflicts_in_installonly_packages(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(kernel1.get_base_dir())
-        shutil.rmtree(kernel2.get_base_dir())
+        kernel1.clean()
+        kernel2.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -465,8 +465,8 @@ def test_finds_conflict_against_older_subpackage(request, dir_server):
 
     def cleanUp():
         shutil.rmtree(baserepo.repoDir)
-        shutil.rmtree(oldvim.get_base_dir())
-        shutil.rmtree(newvim.get_base_dir())
+        oldvim.clean()
+        newvim.clean()
 
     request.addfinalizer(cleanUp)
 
@@ -521,8 +521,8 @@ def test_obeys_xml_base_when_downloading_packages(request, tmpdir, dir_server):
     p1.make()
 
     def cleanUp():
-        shutil.rmtree(p2.get_base_dir())
-        shutil.rmtree(p1.get_base_dir())
+        p2.clean()
+        p1.clean()
 
     request.addfinalizer(cleanUp)
 
