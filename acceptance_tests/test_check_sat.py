@@ -48,7 +48,4 @@ def test_error_if_repository_names_not_provided(tmp_path):
         ["rpmdeplint", "check-sat", f"--repo={tmp_path}"]
     )
     assert exitcode == 2
-    assert (
-        f"error: argument -r/--repo: Repo '{tmp_path}' is not in the form <name>,<url or path>"
-        in err
-    )
+    assert f"error: argument -r/--repo: invalid repo value: '{tmp_path}'" in err

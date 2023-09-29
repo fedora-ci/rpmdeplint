@@ -143,15 +143,16 @@ def dependency_analyzer_from_args(args):
     return DependencyAnalyzer(repos, list(args.rpms), arch=args.arch)
 
 
-def comma_separated_repo(value: str) -> Repo:
-    if "," not in value:
-        raise argparse.ArgumentTypeError(
-            f"Repo {value!r} is not in the form <name>,<url or path>"
-        )
-    repo_name, url_or_path = value.split(",", 1)
-    if url_or_path.startswith("http") and "/metalink?" in url_or_path:
-        return Repo(name=repo_name, metalink=url_or_path)
-    return Repo(name=repo_name, baseurl=url_or_path)
+def repo(value: str) -> Repo:
+    if "," in value:
+        repo_name, url_or_path = value.split(",", 1)
+        if url_or_path.startswith("http") and "/metalink?" in url_or_path:
+            return Repo(name=repo_name, metalink=url_or_path)
+        return Repo(name=repo_name, baseurl=url_or_path)
+
+    if repos := list(Repo.from_yum_config(name=value)):
+        return repos[0]
+    raise ValueError(f"Repo {value} is not configured")
 
 
 def add_common_dependency_analyzer_args(parser):
@@ -164,12 +165,12 @@ def add_common_dependency_analyzer_args(parser):
     parser.add_argument(
         "-r",
         "--repo",
-        metavar="NAME,URL_OR_PATH",
-        type=comma_separated_repo,
+        metavar="NAME[,URL_OR_PATH]",
+        type=repo,
         action="append",
         dest="repos",
         default=[],
-        help="Name and (baseurl or metalink or local path) of a repo to test against",
+        help="Name and optional (baseurl or metalink or local path) of a repo to test against",
     )
     parser.add_argument(
         "-R",

@@ -6,10 +6,11 @@ Changelog
 
 * Repodata cache now works with metalink/mirrorlist
   (`RHBZ#1343247 <https://bugzilla.redhat.com/show_bug.cgi?id=1343247#c18>`__).
-* Don't leak directories in `/var/tmp/rpmdeplint-*`
+* Don't leak directories in :file:`/var/tmp/rpmdeplint-*`
   (`RHBZ#1343247 <https://bugzilla.redhat.com/show_bug.cgi?id=1343247#c17>`__).
 * Allow passing a metalink for --repo instead of baseurl
   (`RHBZ#1454525 <https://bugzilla.redhat.com/show_bug.cgi?id=1454525>`__).
+* Allow passing only a configured repo name for ``--repo``.
 * Modernize deprecated stuff.
 * Refactoring.
 

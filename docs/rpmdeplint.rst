@@ -17,24 +17,35 @@ RPM packages against given repositories.
 Options
 ~~~~~~~
 
-.. option:: --repo NAME,URL, -r NAME,URL
+.. option:: --repo NAME[,URL_OR_PATH], -r NAME[,URL_OR_PATH]
 
-   Load yum repo from the given URL. You can also specify a local filesystem
-   path instead of a URL.
+   Load yum repository specified by name or by URL/path.
 
-   The NAME is for descriptive purposes only. It has no impact on dependency
+   If the repo is already configured in :file:`/etc/yum.repos.d/{*}.repo`
+   you can just specify its name, like::
+
+     --repo=fedora
+
+   Otherwise, specify a name and the baseurl or metalink. The NAME is for
+   descriptive purposes only in this case. It has no impact on dependency
    resolution. If rpmdeplint finds a dependency problem relating to a package
-   in this repo, the NAME will appear in the error message.
-
-   Note that the URL should point at a directory containing
-   ``repodata/repomd.xml``. For example::
+   in this repo, the NAME will appear in the error message. Examples::
 
      --repo=fedora,https://download.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/
 
+     --repo=fedora,https://mirrors.fedoraproject.org/metalink?repo=rawhide&arch=x86_64
+
+   You can also specify a local filesystem path instead of a URL, like::
+
+     --repo=myrepo,/home/me/my_repo
+
+   Note that the URL/path should point at a directory containing
+   ``repodata/repomd.xml``. Examples::
+
 .. option:: --repos-from-system, -R
 
-   Use yum repos from the system-wide configuration in :file:`/etc/yum.conf`
-   and :file:`/etc/yum.repos.d/{*}.repo`. Repos which are disabled in the
+   Use yum repos from the system-wide configuration in
+   :file:`/etc/yum.repos.d/{*}.repo`. Repos which are disabled in the
    configuration (``enabled=0``) are ignored.
 
    This option can be combined with one or more :option:`--repo` options.
@@ -135,6 +146,18 @@ to check if it will cause dependency errors in Fedora::
 
     rpmdeplint check \
         --repo=fedora,https://download.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/ \
+        greenwave-0.6.1-0.git.2.2529bfb.fc29.noarch.rpm
+
+You don't have to specify the URLs of the repos if they are already configured in `/etc/yum.repos.d/`::
+
+    rpmdeplint check \
+        --repo=fedora --repo=updates \
+        greenwave-0.6.1-0.git.2.2529bfb.fc29.noarch.rpm
+
+or use all configured repos::
+
+    rpmdeplint check \
+        --repos-from-system \
         greenwave-0.6.1-0.git.2.2529bfb.fc29.noarch.rpm
 
 You can also use a local filesystem path instead of an absolute URL for the

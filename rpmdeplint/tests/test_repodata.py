@@ -15,18 +15,14 @@ from rpmdeplint.repodata import Repo, RepoDownloadError
 
 
 @pytest.fixture()
-def yumdir(tmpdir, monkeypatch):
-    tmpdir.join("yum.conf").write("[main]\n")
-    monkeypatch.setattr(Repo, "yum_main_config_path", str(tmpdir.join("yum.conf")))
-    monkeypatch.setattr(
-        Repo, "yum_repos_config_glob", str(tmpdir.join("yum.repos.d", "*.repo"))
-    )
-    return tmpdir
+def yumdir(tmp_path, monkeypatch):
+    monkeypatch.setattr(Repo, "yum_repos_d", tmp_path)
+    return tmp_path
 
 
 def test_loads_system_yum_repo_with_baseurl(yumdir):
-    yumdir.join("yum.repos.d", "dummy.repo").write(
-        "[dummy]\nname=Dummy\nbaseurl=http://example.invalid/dummy\n", ensure=True
+    yumdir.joinpath("dummy.repo").write_text(
+        "[dummy]\nname=Dummy\nbaseurl=http://example.invalid/dummy\n"
     )
 
     repos = list(Repo.from_yum_config())
@@ -36,9 +32,28 @@ def test_loads_system_yum_repo_with_baseurl(yumdir):
     assert repos[0].metalink is None
 
 
+def test_loads_system_yum_repo_specific(yumdir):
+    yumdir.joinpath("first.repo").write_text(
+        "[first]\nname=First\nbaseurl=http://example.invalid/first\n"
+    )
+    yumdir.joinpath("dummy.repo").write_text(
+        "[dummy]\nname=Dummy\nbaseurl=http://example.invalid/dummy\n\n"
+        "[dummy-debuginfo]\nname=Dummy debuginfo\nbaseurl=http://example.invalid/other\n"
+    )
+    yumdir.joinpath("last.repo").write_text(
+        "[last]\nname=Last\nbaseurl=http://example.invalid/last\n"
+    )
+
+    repos = list(Repo.from_yum_config(name="dummy"))
+    assert len(repos) == 1
+    assert repos[0].name == "dummy"
+    assert repos[0].urls[0] == "http://example.invalid/dummy"
+    assert repos[0].metalink is None
+
+
 def test_loads_system_yum_repo_with_metalink(yumdir):
-    yumdir.join("yum.repos.d", "dummy.repo").write(
-        "[dummy]\nname=Dummy\nmetalink=http://example.invalid/dummy\n", ensure=True
+    yumdir.joinpath("dummy.repo").write_text(
+        "[dummy]\nname=Dummy\nmetalink=http://example.invalid/dummy\n"
     )
 
     repos = list(Repo.from_yum_config())
@@ -49,8 +64,8 @@ def test_loads_system_yum_repo_with_metalink(yumdir):
 
 
 def test_loads_system_yum_repo_with_mirrorlist(yumdir):
-    yumdir.join("yum.repos.d", "dummy.repo").write(
-        "[dummy]\nname=Dummy\nmirrorlist=http://example.invalid/dummy\n", ensure=True
+    yumdir.joinpath("dummy.repo").write_text(
+        "[dummy]\nname=Dummy\nmirrorlist=http://example.invalid/dummy\n"
     )
 
     repos = list(Repo.from_yum_config())
@@ -61,9 +76,10 @@ def test_loads_system_yum_repo_with_mirrorlist(yumdir):
 
 
 def test_loads_system_yum_repo_local(yumdir):
-    local_repo = yumdir.join("local_repo").mkdir()
-    yumdir.join("yum.repos.d", "dummy.repo").write(
-        f"[dummy]\nname=Dummy\nbaseurl=file://{local_repo}\n", ensure=True
+    local_repo = yumdir / "local_repo"
+    local_repo.mkdir()
+    yumdir.joinpath("dummy.repo").write_text(
+        f"[dummy]\nname=Dummy\nbaseurl=file://{local_repo}\n"
     )
 
     repos = list(Repo.from_yum_config())
@@ -75,9 +91,8 @@ def test_loads_system_yum_repo_local(yumdir):
 
 
 def test_skips_disabled_system_yum_repo(yumdir):
-    yumdir.join("yum.repos.d", "dummy.repo").write(
-        "[dummy]\nname=Dummy\nbaseurl=http://example.invalid/dummy\nenabled=0\n",
-        ensure=True,
+    yumdir.joinpath("dummy.repo").write_text(
+        "[dummy]\nname=Dummy\nbaseurl=http://example.invalid/dummy\nenabled=0\n"
     )
 
     repos = list(Repo.from_yum_config())
@@ -85,9 +100,8 @@ def test_skips_disabled_system_yum_repo(yumdir):
 
 
 def test_loads_system_yum_repo_with_substitutions(yumdir, monkeypatch):
-    yumdir.join("yum.repos.d", "dummy.repo").write(
-        "[dummy]\nname=Dummy\nbaseurl=http://example.invalid/$releasever/$basearch/\n",
-        ensure=True,
+    yumdir.joinpath("dummy.repo").write_text(
+        "[dummy]\nname=Dummy\nbaseurl=http://example.invalid/$releasever/$basearch/\n"
     )
     monkeypatch.setattr(
         "rpmdeplint.repodata.Repo.get_yumvars",
@@ -113,7 +127,7 @@ def test_yumvars():
         # The common case on developer's machines
         assert yumvars["arch"] == platform.machine()
         assert yumvars["basearch"] == platform.machine()
-        assert int(yumvars["releasever"])
+        assert yumvars["releasever"]
     else:
         # Everywhere else, just assume it's fine
         assert "arch" in yumvars
@@ -122,9 +136,8 @@ def test_yumvars():
 
 
 def test_bad_repo_url_raises_error(yumdir):
-    yumdir.join("yum.repos.d", "dummy.repo").write(
+    yumdir.joinpath("dummy.repo").write_text(
         "[dummy]\nname=Dummy\nbaseurl=http://example.invalid/dummy\nenabled=1\n",
-        ensure=True,
     )
 
     repos = list(Repo.from_yum_config())
@@ -136,10 +149,9 @@ def test_bad_repo_url_raises_error(yumdir):
 
 
 def test_skip_if_unavailable_is_obeyed(yumdir):
-    yumdir.join("yum.repos.d", "dummy.repo").write(
+    yumdir.joinpath("dummy.repo").write_text(
         "[dummy]\nname=Dummy\nbaseurl=http://example.invalid/dummy\n"
         "enabled=1\nskip_if_unavailable=1\n",
-        ensure=True,
     )
 
     repos = list(Repo.from_yum_config())

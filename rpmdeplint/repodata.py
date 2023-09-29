@@ -4,27 +4,26 @@
 # (at your option) any later version.
 
 
-import configparser
-import glob
-import logging
 import os
-import tempfile
-import time
 from collections.abc import Iterator
+from configparser import ConfigParser
 from contextlib import suppress
+from logging import getLogger
 from os import getenv
 from pathlib import Path
+from tempfile import mkdtemp, mkstemp
+from time import time
 from typing import Any, BinaryIO, Optional, Union
 
 import librepo
-import requests
 import rpm
+from requests import Session
 
-logger = logging.getLogger(__name__)
-requests_session = requests.Session()
+logger = getLogger(__name__)
+requests_session = Session()
 
 
-REPO_CACHE_DIR = os.path.join(os.sep, "var", "tmp")
+REPO_CACHE_DIR = "/var/tmp"
 REPO_CACHE_NAME_PREFIX = "rpmdeplint-"
 
 
@@ -52,7 +51,7 @@ class Cache:
 
     @staticmethod
     def clean():
-        expiry_time = time.time() - float(getenv("RPMDEPLINT_EXPIRY_SECONDS", 604800))
+        expiry_time = time() - float(getenv("RPMDEPLINT_EXPIRY_SECONDS", 604800))
         if not Cache.base_path().is_dir():
             return  # nothing to do
         for subdir in Cache.base_path().iterdir():
@@ -90,7 +89,7 @@ class Cache:
             return f
 
         filepath_in_cache.parent.mkdir(parents=True, exist_ok=True)
-        fd, temp_path = tempfile.mkstemp(dir=filepath_in_cache.parent, text=False)
+        fd, temp_path = mkstemp(dir=filepath_in_cache.parent, text=False)
         try:
             f = os.fdopen(fd, "wb+")
         except Exception:
@@ -128,8 +127,7 @@ class Repo:
     Represents a Yum ("repomd") package repository to test dependencies against.
     """
 
-    yum_main_config_path = "/etc/yum.conf"
-    yum_repos_config_glob = "/etc/yum.repos.d/*.repo"
+    yum_repos_d = Path("/etc/yum.repos.d/")
 
     @staticmethod
     def get_yumvars() -> dict[str, str]:
@@ -149,10 +147,10 @@ class Repo:
         }
 
     @classmethod
-    def from_yum_config(cls) -> Iterator["Repo"]:
+    def from_yum_config(cls, name: str = "") -> Iterator["Repo"]:
         """
-        Yields Repo instances loaded from the system-wide Yum
-        configuration in :file:`/etc/yum.conf` and :file:`/etc/yum.repos.d/`.
+        Yields Repo instances loaded from the system-wide
+        configuration in :file:`/etc/yum.repos.d/`.
         """
 
         def substitute_yumvars(s: str, _yumvars: dict[str, str]) -> str:
@@ -161,10 +159,10 @@ class Repo:
             return s
 
         yumvars = cls.get_yumvars()
-        config = configparser.RawConfigParser()
-        config.read([cls.yum_main_config_path, *glob.glob(cls.yum_repos_config_glob)])
+        config = ConfigParser()
+        config.read(cls.yum_repos_d.glob("*.repo"))
         for section in config.sections():
-            if section == "main":
+            if name and section != name:
                 continue
             if config.has_option(section, "enabled") and not config.getboolean(
                 section, "enabled"
@@ -274,7 +272,7 @@ class Repo:
             h.local = True
         else:
             # tempdir for repomd.xml (metadata) and downloaded rpms
-            h.destdir = tempfile.mkdtemp(
+            h.destdir = mkdtemp(
                 self.name, prefix=REPO_CACHE_NAME_PREFIX, dir=REPO_CACHE_DIR
             )
         h.interruptible = True  # Download is interruptible
