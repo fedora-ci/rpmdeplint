@@ -10,4 +10,4 @@ prepare:
     - 'glibc-devel*i686'
 execute:
   script:
-    - pytest --verbose --showlocals acceptance_tests/
+    - pytest --verbose --showlocals tests/acceptance/

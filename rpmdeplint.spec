@@ -54,7 +54,7 @@ mv docs/_build/man/rpmdeplint.1 %{buildroot}%{_mandir}/man1/
 %pyproject_save_files rpmdeplint
 
 %check
-py.test-3 rpmdeplint -k "not TestDependencyAnalyzer"
+%pytest tests/unit/ -k "not TestDependencyAnalyzer"
 # Acceptance tests do not work in mock because they require .i686 packages.
 
 %files

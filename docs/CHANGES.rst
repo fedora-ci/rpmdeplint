@@ -13,6 +13,7 @@ Changelog
 * Allow passing only a configured repo name for ``--repo``.
 * Modernize deprecated stuff.
 * Refactoring.
+* Unit and acceptance tests moved to :file:`tests/`.
 
 2.0rc2
 ~~~~~~
