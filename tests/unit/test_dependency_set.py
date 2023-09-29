@@ -5,7 +5,7 @@
 from typing import ClassVar
 from unittest import TestCase
 
-from rpmdeplint import DependencySet
+from rpmdeplint.analyzer import DependencySet
 
 
 class test_pkg:

@@ -9,14 +9,12 @@ import logging
 import sys
 from collections.abc import Callable
 from enum import IntEnum
-from importlib import metadata
 
-from rpmdeplint import DependencyAnalyzer, UnreadablePackageError
+from rpmdeplint import __version__
+from rpmdeplint.analyzer import DependencyAnalyzer, UnreadablePackageError
 from rpmdeplint.repodata import PackageDownloadError, Repo, RepoDownloadError
 
 logger = logging.getLogger(__name__)
-
-version = metadata.version("rpmdeplint")
 
 
 class ExitCode(IntEnum):
@@ -216,7 +214,9 @@ def main():
         "--debug", action="store_true", help="Show detailed progress messages"
     )
     parser.add_argument("--quiet", action="store_true", help="Show only errors")
-    parser.add_argument("--version", action="version", version=f"%(prog)s {version}")
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
+    )
 
     subparsers = parser.add_subparsers(dest="subcommand", title="subcommands")
     subparsers.required = True

@@ -14,6 +14,7 @@ Changelog
 * Modernize deprecated stuff.
 * Refactoring.
 * Unit and acceptance tests moved to :file:`tests/`.
+* Code from :file:`__init__.py` moved to :file:`analyzer.py`.
 
 2.0rc2
 ~~~~~~

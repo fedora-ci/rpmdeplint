@@ -8,7 +8,7 @@ from unittest import TestCase
 from rpmfluff import SimpleRpmBuild
 from rpmfluff.yumrepobuild import YumRepoBuild
 
-from rpmdeplint import DependencyAnalyzer
+from rpmdeplint.analyzer import DependencyAnalyzer
 from rpmdeplint.repodata import Repo
 
 
