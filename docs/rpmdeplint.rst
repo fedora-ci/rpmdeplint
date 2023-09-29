@@ -175,4 +175,4 @@ the dnf cache.)
 Bugs
 ~~~~
 
-Bug reports can be submitted to https://bugzilla.redhat.com/.
+Bug reports can be submitted to https://github.com/fedora-ci/rpmdeplint/issues.
