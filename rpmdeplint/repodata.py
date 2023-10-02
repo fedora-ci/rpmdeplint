@@ -132,12 +132,14 @@ class Repo:
     @staticmethod
     def get_yumvars() -> dict[str, str]:
         with suppress(ModuleNotFoundError):
-            import dnf.conf
-            import dnf.rpm
+            import dnf
 
-            subst = dnf.conf.Conf().substitutions
-            subst["releasever"] = dnf.rpm.detect_releasever(installroot="")
-            return subst
+            with dnf.Base() as base:
+                subst = base.conf.substitutions
+                with suppress(FileNotFoundError):
+                    if "CentOS Stream" in Path("/etc/redhat-release").read_text():
+                        subst["stream"] = f"{subst['releasever']}-stream"
+                return subst
 
         # Probably not going to work but there's not much else we can do...
         return {
