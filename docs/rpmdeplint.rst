@@ -11,8 +11,8 @@ Synopsis
 Description
 ~~~~~~~~~~~
 
-The :program:`rpmdeplint` command will test dependency satisfiability of given
-RPM packages against given repositories.
+The :program:`rpmdeplint` command tests the dependency satisfiability of
+specified RPM packages against given repositories.
 
 Options
 ~~~~~~~
@@ -22,13 +22,13 @@ Options
    Load yum repository specified by name or by URL/path.
 
    If the repo is already configured in :file:`/etc/yum.repos.d/{*}.repo`
-   you can just specify its name, like::
+   simply specify its name like::
 
      --repo=fedora
 
-   Otherwise, specify a name and the baseurl or metalink. The NAME is for
+   Otherwise, specify a name and the base URL or metalink. The NAME is for
    descriptive purposes only in this case. It has no impact on dependency
-   resolution. If rpmdeplint finds a dependency problem relating to a package
+   resolution. If rpmdeplint identifies a dependency issue relating to a package
    in this repo, the NAME will appear in the error message. Examples::
 
      --repo=fedora,https://download.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/
@@ -99,8 +99,7 @@ check-repoclosure
 
 check-conflicts
   Checks for undeclared file conflicts in the given RPM packages: that is, when
-  one of the given package contains a file which is also contained in some
-  other package.
+  a given package contains a file also contained in another package.
 
   This command will not report a file as conflicting between two packages if:
 

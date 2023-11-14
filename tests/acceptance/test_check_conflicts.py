@@ -49,7 +49,7 @@ def test_finds_undeclared_file_conflict(request, dir_server):
     assert exitcode == 3
     assert err == (
         "Undeclared file conflicts:\n"
-        "a-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"
+        "a-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"  # noqa: E501
     )
 
 
@@ -87,7 +87,7 @@ def test_finds_undeclared_file_conflict_with_repo_on_local_filesystem(request):
     assert exitcode == 3
     assert err == (
         "Undeclared file conflicts:\n"
-        "a-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"
+        "a-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"  # noqa: E501
     )
 
 
@@ -258,17 +258,20 @@ def test_conflict_not_ignored_if_contents_match_but_perms_differ(request, dir_se
         ]
     )
     assert exitcode == 3
-    assert err == (
-        "Undeclared file conflicts:\n"
-        "x-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"
-        "x-0.1-1.i386 provides /usr/share/thing which is also provided by y-0.1-1.i386\n"
-        "x-0.1-1.i386 provides /usr/share/thing which is also provided by z-0.1-1.i386\n"
-        "y-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"
-        "y-0.1-1.i386 provides /usr/share/thing which is also provided by x-0.1-1.i386\n"
-        "y-0.1-1.i386 provides /usr/share/thing which is also provided by z-0.1-1.i386\n"
-        "z-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"
-        "z-0.1-1.i386 provides /usr/share/thing which is also provided by x-0.1-1.i386\n"
-        "z-0.1-1.i386 provides /usr/share/thing which is also provided by y-0.1-1.i386\n"
+    assert (
+        err
+        == (
+            "Undeclared file conflicts:\n"
+            "x-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"  # noqa: E501
+            "x-0.1-1.i386 provides /usr/share/thing which is also provided by y-0.1-1.i386\n"  # noqa: E501
+            "x-0.1-1.i386 provides /usr/share/thing which is also provided by z-0.1-1.i386\n"  # noqa: E501
+            "y-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"  # noqa: E501
+            "y-0.1-1.i386 provides /usr/share/thing which is also provided by x-0.1-1.i386\n"  # noqa: E501
+            "y-0.1-1.i386 provides /usr/share/thing which is also provided by z-0.1-1.i386\n"  # noqa: E501
+            "z-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"  # noqa: E501
+            "z-0.1-1.i386 provides /usr/share/thing which is also provided by x-0.1-1.i386\n"  # noqa: E501
+            "z-0.1-1.i386 provides /usr/share/thing which is also provided by y-0.1-1.i386\n"  # noqa: E501
+        )
     )
 
 
@@ -343,7 +346,7 @@ def test_does_not_fail_with_signed_rpms(request, dir_server):
     assert exitcode == 3
     assert err == (
         "Undeclared file conflicts:\n"
-        "b-0.1-1.i386 provides /usr/share/thing which is also provided by a-0.1-1.x86_64\n"
+        "b-0.1-1.i386 provides /usr/share/thing which is also provided by a-0.1-1.x86_64\n"  # noqa: E501
     )
 
 
@@ -399,7 +402,8 @@ def test_finds_conflicts_in_installonly_packages(request, dir_server):
         installPath="usr/share/licenses/kernel-core/COPYING",
         sourceFile=SourceFile("COPYING", "content\n"),
     )
-    # The modern mechanism for telling DNF a package is installonly is to add this virtual provide.
+    # The modern mechanism for telling DNF a package is installonly
+    # is to add this virtual provide.
     kernel1.add_provides("installonlypkg(kernel)")
     baserepo = YumRepoBuild([kernel1])
     baserepo.make("i386")

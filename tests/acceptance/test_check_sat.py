@@ -38,7 +38,7 @@ def test_shows_error_for_rpms(request, dir_server):
     assert exitcode == 3
     assert (
         err
-        == "Problems with dependency set:\nnothing provides doesnotexist needed by a-0.1-1.i386\n"
+        == "Problems with dependency set:\nnothing provides doesnotexist needed by a-0.1-1.i386\n"  # noqa: E501
     )
     assert out == ""
 

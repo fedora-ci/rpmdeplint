@@ -111,7 +111,8 @@ class DependencySet:
     @property
     def package_dependencies(self) -> dict[str, dict[str, list]]:
         """
-        Dict in the form {package: {'dependencies': list of packages, 'problems': list of problems}}
+        Dict in the form {package: {'dependencies': list of packages,
+                                    'problems': list of problems}}
         """
         return dict(self._packagedeps)
 
@@ -141,7 +142,8 @@ class DependencyAnalyzer:
         self.pool = Pool()
         self.pool.setarch(arch)
 
-        #: List of :py:class:`solv.Solvable` to be tested (corresponding to *packages* parameter)
+        # List of :py:class:`solv.Solvable` to be tested
+        # (corresponding to *packages* parameter)
         self.solvables: list[XSolvable] = []
         self.commandline_repo = self.pool.add_repo("@commandline")
         for rpmpath in packages:
@@ -153,9 +155,8 @@ class DependencyAnalyzer:
                 )
             self.solvables.append(solvable)
 
-        self.repos_by_name = (
-            {}
-        )  #: Mapping of {repo name: :py:class:`rpmdeplint.repodata.Repo`}
+        # Mapping of {repo name: :py:class:`rpmdeplint.repodata.Repo`}
+        self.repos_by_name = {}
         for repo in repos:
             try:
                 repo.download_repodata()
@@ -236,7 +237,8 @@ class DependencyAnalyzer:
         sel = self.pool.Selection()
         for solvable in solvables:
             # Select every solvable with the same name and lower EVR.
-            # XXX are there some special cases with arch-noarch upgrades which this does not handle?
+            # XXX are there some special cases with arch-noarch upgrades
+            # which this does not handle?
             sel.add(
                 self.pool.select(
                     f"{solvable.name}.{solvable.arch} < {solvable.evr}",
@@ -268,7 +270,8 @@ class DependencyAnalyzer:
         solver = self.pool.Solver()
         # This selection matches packages obsoleted by our packages under test.
         obs_sel = self._select_obsoleted_by(self.solvables)
-        # This selection matches packages obsoleted by other existing packages in the repo.
+        # This selection matches packages obsoleted
+        # by other existing packages in the repo.
         existing_obs_sel = self._select_obsoleted_by(
             s for s in self.pool.solvables if s.repo.name != "@commandline"
         )
@@ -491,11 +494,13 @@ class DependencyAnalyzer:
                     continue  # it's kept, so no problem here
                 if action == transaction.SOLVER_TRANSACTION_UPGRADED:
                     problems.append(
-                        f"{solvable} would be upgraded by {other} from repo {other.repo.name}"
+                        f"{solvable} would be upgraded by {other} "
+                        f"from repo {other.repo.name}"
                     )
                 elif action == transaction.SOLVER_TRANSACTION_OBSOLETED:
                     problems.append(
-                        f"{solvable} would be obsoleted by {other} from repo {other.repo.name}"
+                        f"{solvable} would be obsoleted by {other} "
+                        f"from repo {other.repo.name}"
                     )
                 else:
                     raise RuntimeError(f"Unrecognised transaction step type {action}")
