@@ -45,7 +45,7 @@ def test_catches_soname_change(request, dir_server):
     assert exitcode == 3
     assert err == (
         "Dependency problems with repos:\n"
-        "package b-0.1-1.i386 requires libfoo.so.4, but none of the providers can be installed\n"
+        "package b-0.1-1.i386 requires libfoo.so.4, but none of the providers can be installed\n"  # noqa: E501
     )
 
 
@@ -84,7 +84,7 @@ def test_catches_soname_change_with_package_rename(request, dir_server):
     assert exitcode == 3
     assert err == (
         "Dependency problems with repos:\n"
-        "package b-0.1-1.i386 requires libfoo.so.4, but none of the providers can be installed\n"
+        "package b-0.1-1.i386 requires libfoo.so.4, but none of the providers can be installed\n"  # noqa: E501
     )
 
 

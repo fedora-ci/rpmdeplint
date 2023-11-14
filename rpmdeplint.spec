@@ -1,7 +1,5 @@
-%global upstream_version 2.0rc3
-
 Name:           rpmdeplint
-Version:        2.0~rc3
+Version:        2.0
 Release:        %autorelease
 Summary:        Tool to find errors in RPM packages in the context of their dependency graph
 License:        GPL-2.0-or-later
@@ -37,7 +35,7 @@ dependency graph.
 This package provides a Python 3 API for performing the checks.
 
 %prep
-%autosetup -n rpmdeplint-%{upstream_version}
+%autosetup -n rpmdeplint-%{version}
 
 %generate_buildrequires
 # The -w flag is required for EPEL 9's older hatchling

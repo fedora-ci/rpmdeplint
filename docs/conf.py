@@ -9,8 +9,8 @@ project = "rpmdeplint"
 copyright = "2016, Red Hat"
 author = "rpmdeplint contributors"
 
-version = "1.0"
-release = "1.0"
+version = "2.0"
+release = "2.0"
 
 language = None
 
@@ -47,7 +47,7 @@ man_pages = [
     (
         "rpmdeplint",
         "rpmdeplint",
-        "a tool to find errors in RPM packages in the context of their dependency graph",
+        "a tool to find errors in RPM packages in the context of their dependency graph",  # noqa: E501
         [author],
         1,
     )

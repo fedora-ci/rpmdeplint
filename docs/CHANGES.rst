@@ -1,6 +1,11 @@
 Changelog
 ---------
 
+2.0
+~~~~~~
+
+* Make metalinks work on CentOS Stream 9
+
 2.0rc3
 ~~~~~~
 

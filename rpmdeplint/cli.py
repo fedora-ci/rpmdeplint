@@ -168,7 +168,8 @@ def add_common_dependency_analyzer_args(parser):
         action="append",
         dest="repos",
         default=[],
-        help="Name and optional (baseurl or metalink or local path) of a repo to test against",
+        help="Name and optional (baseurl or metalink or local path) "
+        "of a repo to test against",
     )
     parser.add_argument(
         "-R",
