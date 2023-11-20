@@ -273,14 +273,14 @@ class DependencyAnalyzer:
         # This selection matches packages obsoleted
         # by other existing packages in the repo.
         existing_obs_sel = self._select_obsoleted_by(
-            s for s in self.pool.solvables if s.repo.name != "@commandline"
+            s for s in self.pool.solvables_iter() if s.repo.name != "@commandline"
         )
         obsoleted = obs_sel.solvables() + existing_obs_sel.solvables()
         logger.debug(
             "Excluding the following obsoleted packages:\n%s",
             "\n".join(f"  {s}" for s in obsoleted),
         )
-        for solvable in self.pool.solvables:
+        for solvable in self.pool.solvables_iter():
             if solvable in self.solvables:
                 continue  # checked by check-sat command instead
             if solvable in obsoleted:
@@ -413,7 +413,7 @@ class DependencyAnalyzer:
             # a given file is *very slow* (see bug 1465736).
             # Hence this approach, where we visit each solvable and use Python
             # set operations to look for any overlapping filenames.
-            for conflicting in self.pool.solvables:
+            for conflicting in self.pool.solvables_iter():
                 # Conflicts cannot happen between identical solvables and also
                 # between solvables with the same name - such solvables cannot
                 # be installed next to each other.
@@ -474,8 +474,7 @@ class DependencyAnalyzer:
             jobs = self.pool.Selection_all().jobs(Job.SOLVER_UPDATE)
             solver = self.pool.Solver()
             solver.set_flag(solver.SOLVER_FLAG_ALLOW_UNINSTALL, True)
-            solver_problems = solver.solve(jobs)
-            for problem in solver_problems:
+            for problem in solver.solve(jobs):
                 # This is a warning, not an error, because it means there are
                 # some *other* problems with existing packages in the
                 # repository, not our packages under test. But it means our
