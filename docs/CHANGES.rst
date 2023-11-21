@@ -1,6 +1,11 @@
 Changelog
 ---------
 
+dev
+~~~~~~
+
+* Exclude dirs known to be owned by many packages from conflict checking.
+
 2.0
 ~~~~~~
 

@@ -4,6 +4,7 @@
 # (at your option) any later version.
 
 
+import re
 from collections import defaultdict
 from collections.abc import Iterable
 from logging import getLogger
@@ -273,14 +274,14 @@ class DependencyAnalyzer:
         # This selection matches packages obsoleted
         # by other existing packages in the repo.
         existing_obs_sel = self._select_obsoleted_by(
-            s for s in self.pool.solvables if s.repo.name != "@commandline"
+            s for s in self.pool.solvables_iter() if s.repo.name != "@commandline"
         )
         obsoleted = obs_sel.solvables() + existing_obs_sel.solvables()
         logger.debug(
             "Excluding the following obsoleted packages:\n%s",
             "\n".join(f"  {s}" for s in obsoleted),
         )
-        for solvable in self.pool.solvables:
+        for solvable in self.pool.solvables_iter():
             if solvable in self.solvables:
                 continue  # checked by check-sat command instead
             if solvable in obsoleted:
@@ -325,6 +326,18 @@ class DependencyAnalyzer:
             Dataiterator.SEARCH_FILES | Dataiterator.SEARCH_COMPLETE_FILELIST,
         )
         return {match.str for match in iterator}
+
+    @staticmethod
+    def _remove_dirs_known_to_be_owned_by_many(paths: set[str]) -> set[str]:
+        """
+        Some directories are known to be owned by multiple packages.
+        We don't want to check conflicts upon those, so remove them.
+        """
+        pattern = (
+            r"/usr/lib/(debug/)?\.build-id(/([0-9a-f]{2})?)?|"
+            r"/usr/lib/debug(/usr)?(/bin|/sbin|/lib|/lib64|/\.dwz)?"
+        )
+        return {p for p in paths if not re.fullmatch(pattern, p)}
 
     def _packages_can_be_installed_together(
         self, left: XSolvable, right: XSolvable
@@ -411,18 +424,21 @@ class DependencyAnalyzer:
             # In libsolv, iterating all solvables is fast, and listing all
             # files in a solvable is fast, but finding solvables which contain
             # a given file is *very slow* (see bug 1465736).
-            # Hence this approach, where we visit each solvable and use Python
+            # Hence, this approach, where we visit each solvable and use Python
             # set operations to look for any overlapping filenames.
-            for conflicting in self.pool.solvables:
+            for conflicting in self.pool.solvables_iter():
                 # Conflicts cannot happen between identical solvables and also
                 # between solvables with the same name - such solvables cannot
                 # be installed next to each other.
                 if conflicting == solvable or conflicting.name == solvable.name:
                     continue
-                conflict_filenames = filenames.intersection(
-                    self._files_in_solvable(conflicting)
-                )
-                if not conflict_filenames:
+                # Intersect files owned by solvable and conflicting and remove
+                # dirs that are known to be owned by many packages.
+                if not (
+                    conflict_filenames := self._remove_dirs_known_to_be_owned_by_many(
+                        filenames.intersection(self._files_in_solvable(conflicting))
+                    )
+                ):
                     continue
                 if not self._packages_can_be_installed_together(solvable, conflicting):
                     continue
@@ -474,8 +490,7 @@ class DependencyAnalyzer:
             jobs = self.pool.Selection_all().jobs(Job.SOLVER_UPDATE)
             solver = self.pool.Solver()
             solver.set_flag(solver.SOLVER_FLAG_ALLOW_UNINSTALL, True)
-            solver_problems = solver.solve(jobs)
-            for problem in solver_problems:
+            for problem in solver.solve(jobs):
                 # This is a warning, not an error, because it means there are
                 # some *other* problems with existing packages in the
                 # repository, not our packages under test. But it means our
