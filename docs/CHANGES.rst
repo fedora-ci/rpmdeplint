@@ -5,6 +5,7 @@ dev
 ~~~~~~
 
 * Exclude dirs known to be owned by many packages from conflict checking.
+* If check-upgrade finds a package upgradable by its modular version, skip it.
 
 2.0
 ~~~~~~
