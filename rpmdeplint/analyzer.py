@@ -508,10 +508,17 @@ class DependencyAnalyzer:
                 if action == transaction.SOLVER_TRANSACTION_IGNORE:
                     continue  # it's kept, so no problem here
                 if action == transaction.SOLVER_TRANSACTION_UPGRADED:
-                    problems.append(
+                    msg = (
                         f"{solvable} would be upgraded by {other} "
                         f"from repo {other.repo.name}"
                     )
+                    # If we find a package upgradable by its modular version, skip it.
+                    # Because a package can be upgraded to its modular version ONLY when
+                    # the module stream is enabled first.
+                    if solvable.name == other.name and ".module" in other.evr:
+                        logger.debug(msg)
+                    else:
+                        problems.append(msg)
                 elif action == transaction.SOLVER_TRANSACTION_OBSOLETED:
                     problems.append(
                         f"{solvable} would be obsoleted by {other} "
