@@ -77,7 +77,6 @@ select = [
 ignore = [
     "SIM115", # open-file-with-context-handler
 ]
-target-version = "py39"
 
 [tool.mypy]
 python_version = "3.9"
