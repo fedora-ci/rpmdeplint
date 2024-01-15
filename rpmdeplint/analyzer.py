@@ -501,6 +501,9 @@ class DependencyAnalyzer:
             transaction = solver.transaction()
             problems = []
             for solvable in self.solvables:
+                if ".module" in solvable.evr:
+                    logger.debug("Skipping modular %s", solvable)
+                    continue
                 action = transaction.steptype(
                     solvable, transaction.SOLVER_TRANSACTION_SHOW_OBSOLETES
                 )

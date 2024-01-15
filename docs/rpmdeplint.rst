@@ -40,7 +40,7 @@ Options
      --repo=myrepo,/home/me/my_repo
 
    Note that the URL/path should point at a directory containing
-   ``repodata/repomd.xml``. Examples::
+   ``repodata/repomd.xml``.
 
 .. option:: --repos-from-system, -R
 
@@ -112,6 +112,7 @@ check-conflicts
 check-upgrade
   Checks that there are no existing packages in the repositories which would
   upgrade or obsolete the given packages.
+  Modular packages are not considered as candidates.
 
   If this check fails, it means that the package under test will never be
   installed (since the package manager will always pick the newer or obsoleting
