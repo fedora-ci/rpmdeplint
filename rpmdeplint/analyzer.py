@@ -419,6 +419,9 @@ class DependencyAnalyzer:
         # solver = self.pool.Solver()
         problems = []
         for solvable in self.solvables:
+            if ".module" in solvable.evr:
+                logger.debug("Skipping modular %s", solvable)
+                continue
             logger.debug("Checking all files in %s for conflicts", solvable)
             filenames = self._files_in_solvable(solvable)
             # In libsolv, iterating all solvables is fast, and listing all
@@ -430,6 +433,8 @@ class DependencyAnalyzer:
                 # Conflicts cannot happen between solvables with the same name,
                 # such solvables cannot be installed next to each other.
                 if conflicting.name == solvable.name:
+                    continue
+                if ".module" in conflicting.evr:
                     continue
                 # Intersect files owned by solvable and conflicting and remove
                 # dirs that are known to be owned by many packages.
