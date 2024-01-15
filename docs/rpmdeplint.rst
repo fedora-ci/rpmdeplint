@@ -40,7 +40,7 @@ Options
      --repo=myrepo,/home/me/my_repo
 
    Note that the URL/path should point at a directory containing
-   ``repodata/repomd.xml``. Examples::
+   ``repodata/repomd.xml``.
 
 .. option:: --repos-from-system, -R
 
@@ -107,11 +107,13 @@ check-conflicts
   * the file’s checksum, permissions, owner, and group are identical in both
     packages (RPM allows both packages to own the file in this case); or
   * the file’s color is different between the two packages (RPM will
-    silently resolve the conflict in favour of the 64-bit file).
+    silently resolve the conflict in favour of the 64-bit file); or
+  * any (or both) of them is/are a modular package.
 
 check-upgrade
   Checks that there are no existing packages in the repositories which would
   upgrade or obsolete the given packages.
+  Modular packages are not considered as candidates.
 
   If this check fails, it means that the package under test will never be
   installed (since the package manager will always pick the newer or obsoleting

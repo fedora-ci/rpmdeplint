@@ -196,7 +196,7 @@ def validate_common_dependency_analyzer_args(parser, args):
         )
 
 
-def main(args=None):
+def main(args=None) -> ExitCode:
     def add_subparser(
         subcommand: str, _help: str, subcommand_func: Callable[..., ExitCode]
     ):
