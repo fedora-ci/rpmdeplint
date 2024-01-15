@@ -427,10 +427,9 @@ class DependencyAnalyzer:
             # Hence, this approach, where we visit each solvable and use Python
             # set operations to look for any overlapping filenames.
             for conflicting in self.pool.solvables_iter():
-                # Conflicts cannot happen between identical solvables and also
-                # between solvables with the same name - such solvables cannot
-                # be installed next to each other.
-                if conflicting == solvable or conflicting.name == solvable.name:
+                # Conflicts cannot happen between solvables with the same name,
+                # such solvables cannot be installed next to each other.
+                if conflicting.name == solvable.name:
                     continue
                 # Intersect files owned by solvable and conflicting and remove
                 # dirs that are known to be owned by many packages.
