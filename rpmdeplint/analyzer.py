@@ -418,6 +418,7 @@ class DependencyAnalyzer:
         """
         # solver = self.pool.Solver()
         problems = []
+        obsoleted = self._select_obsoleted_by(self.solvables).solvables()
         for solvable in self.solvables:
             if ".module" in solvable.evr:
                 logger.debug("Skipping modular %s", solvable)
@@ -433,6 +434,9 @@ class DependencyAnalyzer:
                 # Conflicts cannot happen between solvables with the same name,
                 # such solvables cannot be installed next to each other.
                 if conflicting.name == solvable.name:
+                    continue
+                # ignore any existing packages the update will replace
+                if conflicting in obsoleted:
                     continue
                 if ".module" in conflicting.evr:
                     continue
