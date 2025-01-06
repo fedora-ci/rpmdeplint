@@ -57,11 +57,11 @@ class TestDependencyAnalyzer(TestCase):
         dependency_set = da.try_to_install_all()
         assert False is dependency_set.is_ok
         assert len(dependency_set.overall_problems) == 1
-        assert [
-            "nothing provides egg-whites needed by lemon-meringue-pie-1-0.x86_64",
-            "nothing provides egg-whites needed by lemon-meringue-pie-1-0.x86_64",
-        ] == dependency_set.package_dependencies["lemon-meringue-pie-1-0.x86_64"][
+        assert dependency_set.package_dependencies["lemon-meringue-pie-1-0.x86_64"][
             "problems"
+        ] == [
+            "nothing provides egg-whites needed by lemon-meringue-pie-1-0.x86_64",
+            "nothing provides egg-whites needed by lemon-meringue-pie-1-0.x86_64",
         ]
 
         eggs = SimpleRpmBuild("eggs", "1", "3", ["noarch"])

@@ -83,7 +83,7 @@ class DirServer(WSGIServer):
             return []
 
 
-@pytest.fixture()
+@pytest.fixture
 def dir_server():
     """
     Defines an HTTP test server for listing directory contents.
