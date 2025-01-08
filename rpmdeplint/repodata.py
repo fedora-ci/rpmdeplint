@@ -81,12 +81,12 @@ class Cache:
 
         filepath_in_cache: Path = Cache.entry_path(checksum)
         if filepath_in_cache.is_file():
-            f = filepath_in_cache.open(mode="rb")
+            fr = filepath_in_cache.open(mode="rb")
             logger.debug("Using cached file %s for %s", filepath_in_cache, urls[0])
             # Bump the modtime on the cache file we are using,
             # since our cache expiry is LRU based on modtime.
-            os.utime(f.fileno())
-            return f
+            os.utime(fr.fileno())
+            return fr
 
         filepath_in_cache.parent.mkdir(parents=True, exist_ok=True)
         fd, temp_path = mkstemp(dir=filepath_in_cache.parent, text=False)
@@ -194,8 +194,8 @@ class Repo:
                 )
             else:
                 raise ValueError(
-                    "Yum config section %s has no "
-                    "baseurl or metalink or mirrorlist" % section
+                    f"Yum config section {section} has no "
+                    "baseurl or metalink or mirrorlist."
                 )
 
     def __init__(
