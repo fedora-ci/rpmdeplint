@@ -38,7 +38,7 @@ def test_lists_dependencies_for_rpms(request, dir_server):
     assert exitcode == 0
     assert err == ""
     assert out == (
-        "a-0.1-1.i386 has 2 dependencies:\n" "\ta-0.1-1.i386\n" "\tb-0.1-1.i386\n\n"
+        "a-0.1-1.i386 has 2 dependencies:\n\ta-0.1-1.i386\n\tb-0.1-1.i386\n\n"
     )
 
 

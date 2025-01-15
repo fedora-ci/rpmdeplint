@@ -266,7 +266,7 @@ def main(args=None) -> ExitCode:
     except argparse.ArgumentTypeError as exc:
         parser.error(str(exc))
     except (UnreadablePackageError, RepoDownloadError, PackageDownloadError) as exc:
-        sys.stderr.write("%s\n" % exc)
+        sys.stderr.write(f"{exc}\n")
         return ExitCode.ERROR
 
 

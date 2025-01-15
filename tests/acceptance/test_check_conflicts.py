@@ -258,20 +258,17 @@ def test_conflict_not_ignored_if_contents_match_but_perms_differ(request, dir_se
         ]
     )
     assert exitcode == 3
-    assert (
-        err
-        == (
-            "Undeclared file conflicts:\n"
-            "x-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"  # noqa: E501
-            "x-0.1-1.i386 provides /usr/share/thing which is also provided by y-0.1-1.i386\n"  # noqa: E501
-            "x-0.1-1.i386 provides /usr/share/thing which is also provided by z-0.1-1.i386\n"  # noqa: E501
-            "y-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"  # noqa: E501
-            "y-0.1-1.i386 provides /usr/share/thing which is also provided by x-0.1-1.i386\n"  # noqa: E501
-            "y-0.1-1.i386 provides /usr/share/thing which is also provided by z-0.1-1.i386\n"  # noqa: E501
-            "z-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"  # noqa: E501
-            "z-0.1-1.i386 provides /usr/share/thing which is also provided by x-0.1-1.i386\n"  # noqa: E501
-            "z-0.1-1.i386 provides /usr/share/thing which is also provided by y-0.1-1.i386\n"  # noqa: E501
-        )
+    assert err == (
+        "Undeclared file conflicts:\n"
+        "x-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"  # noqa: E501
+        "x-0.1-1.i386 provides /usr/share/thing which is also provided by y-0.1-1.i386\n"  # noqa: E501
+        "x-0.1-1.i386 provides /usr/share/thing which is also provided by z-0.1-1.i386\n"  # noqa: E501
+        "y-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"  # noqa: E501
+        "y-0.1-1.i386 provides /usr/share/thing which is also provided by x-0.1-1.i386\n"  # noqa: E501
+        "y-0.1-1.i386 provides /usr/share/thing which is also provided by z-0.1-1.i386\n"  # noqa: E501
+        "z-0.1-1.i386 provides /usr/share/thing which is also provided by b-0.1-1.i386\n"  # noqa: E501
+        "z-0.1-1.i386 provides /usr/share/thing which is also provided by x-0.1-1.i386\n"  # noqa: E501
+        "z-0.1-1.i386 provides /usr/share/thing which is also provided by y-0.1-1.i386\n"  # noqa: E501
     )
 
 
@@ -451,7 +448,7 @@ def test_finds_conflict_against_older_subpackage(request, dir_server):
         sourceFile=SourceFile("vim.1", "oldcontent\n"),
         subpackageSuffix="common",
     )
-    oldvim.get_subpackage("minimal").section_files += "/%s\n" % conflicting_path
+    oldvim.get_subpackage("minimal").section_files += f"/{conflicting_path}\n"
     baserepo = YumRepoBuild([oldvim])
     baserepo.make("x86_64")
     dir_server.basepath = baserepo.repoDir
@@ -464,7 +461,7 @@ def test_finds_conflict_against_older_subpackage(request, dir_server):
         sourceFile=SourceFile("vim.1", "newcontent\n"),
         subpackageSuffix="common",
     )
-    newvim.get_subpackage("minimal").section_files += "/%s\n" % conflicting_path
+    newvim.get_subpackage("minimal").section_files += f"/{conflicting_path}\n"
     newvim.make()
 
     def cleanUp():
