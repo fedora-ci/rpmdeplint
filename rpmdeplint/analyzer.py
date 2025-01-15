@@ -315,6 +315,19 @@ class DependencyAnalyzer:
                         logger.warning(
                             "Ignoring pre-existing repoclosure problem: %s", p
                         )
+                elif solvable.arch == "i686" and all(
+                    s.arch == "x86_64" for s in self.solvables
+                ):
+                    # i686 and x86_64 RPMs live together in the same repos.
+                    # When we build ONLY x86_64 variant of a package that has also
+                    # i686 variant (that we don't build this time) and there are
+                    # dependent i686 RPMs in the repo, the repoclosure fails for these
+                    # dependent RPMs. That is valid, but we still want to ignore it
+                    # in this case (when all RPMs under test are x86_64 only).
+                    logger.warning(
+                        "Ignoring %s because all packages under test are x86_64",
+                        problem_msgs,
+                    )
                 else:
                     problems.extend(problem_msgs)
         return problems
