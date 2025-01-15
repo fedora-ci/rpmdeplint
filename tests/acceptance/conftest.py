@@ -47,7 +47,7 @@ class WSGIServer(Thread):
     @property
     def url(self):
         host, port = self.server_address
-        return f"http://{host}:{port}"
+        return "http://%s:%i" % (host, port)
 
 
 class DirServer(WSGIServer):
@@ -83,7 +83,7 @@ class DirServer(WSGIServer):
             return []
 
 
-@pytest.fixture
+@pytest.fixture()
 def dir_server():
     """
     Defines an HTTP test server for listing directory contents.

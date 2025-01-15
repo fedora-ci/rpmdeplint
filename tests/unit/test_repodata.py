@@ -14,7 +14,7 @@ from rpmfluff.yumrepobuild import YumRepoBuild
 from rpmdeplint.repodata import Repo, RepoDownloadError
 
 
-@pytest.fixture
+@pytest.fixture()
 def yumdir(tmp_path, monkeypatch):
     monkeypatch.setattr(Repo, "yum_repos_d", tmp_path)
     return tmp_path

@@ -471,7 +471,8 @@ class DependencyAnalyzer:
                         # set of packages under test) to catch problems like
                         # bug 1502458.
                         logger.debug(
-                            "Skipping further checks on %s to save network bandwidth",
+                            "Skipping further checks on %s "
+                            "to save network bandwidth",
                             filename,
                         )
                         filenames.remove(filename)
