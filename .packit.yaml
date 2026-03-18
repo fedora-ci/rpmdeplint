@@ -9,7 +9,7 @@ files_to_sync:
 actions:
   create-archive:
     - "python3 -m build --sdist --outdir ."
-    - "sh -c 'echo rpmdeplint-$(hatch version).tar.gz'"
+    - "sh -c 'ls -1 rpmdeplint*.tar.gz'"
   get-current-version:
     - bash -c "hatch version | sed 's|^\([[:digit:]]\.[[:digit:]]\)rc|\1~rc|'"
 
