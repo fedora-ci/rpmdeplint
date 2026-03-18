@@ -228,6 +228,7 @@ def test_conflict_not_ignored_if_contents_match_but_perms_differ(request, dir_se
         sourceFile=SourceFile("thing", "content\n"),
         owner="apache",
     )
+    different_owner.add_provides("user(apache)")
     different_owner.make()
 
     different_group = SimpleRpmBuild("z", "0.1", "1", ["i386"])
@@ -236,6 +237,7 @@ def test_conflict_not_ignored_if_contents_match_but_perms_differ(request, dir_se
         sourceFile=SourceFile("thing", "content\n"),
         group="apache",
     )
+    different_group.add_provides("group(apache)")
     different_group.make()
 
     def cleanUp():
