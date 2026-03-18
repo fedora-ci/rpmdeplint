@@ -138,7 +138,9 @@ def dependency_analyzer_from_args(args):
         repos.extend(Repo.from_yum_config())
     repos.extend(args.repos)
 
-    return DependencyAnalyzer(repos, list(args.rpms), arch=args.arch)
+    return DependencyAnalyzer(
+        repos, list(args.rpms), arch=args.arch, allconflicts=args.allconflicts
+    )
 
 
 def repo(value: str) -> Repo:
@@ -183,6 +185,11 @@ def add_common_dependency_analyzer_args(parser):
         dest="arch",
         default=None,
         help="Limit dependency resolution to ARCH packages [default: any arch]",
+    )
+    parser.add_argument(
+        "--allconflicts",
+        action="store_true",
+        help="Check all packages with a given filename for conflicts",
     )
 
 

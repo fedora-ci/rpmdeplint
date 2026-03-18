@@ -132,6 +132,7 @@ class DependencyAnalyzer:
         repos: Iterable,
         packages: Iterable[str],
         arch: Optional[str] = None,
+        allconflicts: bool = False,
     ):
         """
         :param repos: An iterable of :py:class:`rpmdeplint.repodata.Repo` instances
@@ -142,6 +143,7 @@ class DependencyAnalyzer:
 
         self.pool = Pool()
         self.pool.setarch(arch)
+        self.allconflicts = allconflicts
 
         # List of :py:class:`solv.Solvable` to be tested
         # (corresponding to *packages* parameter)
@@ -458,7 +460,7 @@ class DependencyAnalyzer:
                             f"which is also provided by {conflicting}"
                         )
                         problems.append(msg)
-                    if conflicting not in self.solvables:
+                    if not self.allconflicts and conflicting not in self.solvables:
                         # For each filename we are checking, we only want to
                         # check at most *one* package from the remote
                         # repositories. This is purely an optimization to save
