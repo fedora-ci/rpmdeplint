@@ -418,33 +418,50 @@ class DependencyAnalyzer:
         :return: List of str describing each conflict found
                  (or empty list if no conflicts were found)
         """
-        # solver = self.pool.Solver()
         problems = []
+
+        # Collect files from packages under test
+        test_solvable_files: dict[XSolvable, set[str]] = {}
+        all_test_files: set[str] = set()
+        logger.debug("Collecting files from packages under test...")
         for solvable in self.solvables:
             if ".module" in solvable.evr:
                 logger.debug("Skipping modular %s", solvable)
                 continue
+            files = self._remove_dirs_known_to_be_owned_by_many(
+                self._files_in_solvable(solvable)
+            )
+            test_solvable_files[solvable] = files
+            all_test_files.update(files)
+        logger.debug("Done collecting files from packages under test")
+
+        # In libsolv, iterating all solvables is fast, and listing all
+        # files in a solvable is fast, but finding solvables which contain
+        # a given file is *very slow* (see bug 1465736).
+        # Hence, this approach, where we visit each solvable and use Python
+        # set operations to look for any overlapping filenames.
+        #
+        # We iterate all pool solvables once and keep only the (usually tiny)
+        # subset of filenames that overlap with any package under test, for
+        # efficiency.
+        logger.debug("Collecting overlapping files from pool...")
+        pool_overlapping: dict[XSolvable, frozenset[str]] = {}
+        for pool_solvable in self.pool.solvables_iter():
+            if ".module" in pool_solvable.evr:
+                continue
+            if overlap := self._files_in_solvable(pool_solvable) & all_test_files:
+                pool_overlapping[pool_solvable] = frozenset(overlap)
+        logger.debug("Done collecting overlapping files from pool")
+
+        for solvable, solvable_files in test_solvable_files.items():
             logger.debug("Checking all files in %s for conflicts", solvable)
-            filenames = self._files_in_solvable(solvable)
-            # In libsolv, iterating all solvables is fast, and listing all
-            # files in a solvable is fast, but finding solvables which contain
-            # a given file is *very slow* (see bug 1465736).
-            # Hence, this approach, where we visit each solvable and use Python
-            # set operations to look for any overlapping filenames.
-            for conflicting in self.pool.solvables_iter():
+            filenames = solvable_files.copy()
+            for conflicting, conflicting_files in pool_overlapping.items():
                 # Conflicts cannot happen between solvables with the same name,
                 # such solvables cannot be installed next to each other.
                 if conflicting.name == solvable.name:
                     continue
-                if ".module" in conflicting.evr:
-                    continue
-                # Intersect files owned by solvable and conflicting and remove
-                # dirs that are known to be owned by many packages.
-                if not (
-                    conflict_filenames := self._remove_dirs_known_to_be_owned_by_many(
-                        filenames.intersection(self._files_in_solvable(conflicting))
-                    )
-                ):
+                if not (conflict_filenames := filenames & conflicting_files):
                     continue
                 if not self._packages_can_be_installed_together(solvable, conflicting):
                     continue
@@ -476,7 +493,7 @@ class DependencyAnalyzer:
                             "Skipping further checks on %s to save network bandwidth",
                             filename,
                         )
-                        filenames.remove(filename)
+                        filenames.discard(filename)
         return sorted(problems)
 
     def find_upgrade_problems(self) -> list[str]:
