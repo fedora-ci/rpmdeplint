@@ -58,7 +58,7 @@ def test_lists_dependencies_for_rpms_served_from_filesystem(request):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, _ = run_rpmdeplint(
         [
             "rpmdeplint",
             "list-deps",
@@ -86,7 +86,7 @@ def test_errors_out_for_unsatisfiable_deps(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, _ = run_rpmdeplint(
         [
             "rpmdeplint",
             "list-deps",
@@ -107,7 +107,7 @@ def test_rpmdeplint_errors_on_unavailable_url(request):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, _ = run_rpmdeplint(
         [
             "rpmdeplint",
             "list-deps",
@@ -120,7 +120,7 @@ def test_rpmdeplint_errors_on_unavailable_url(request):
 
 
 def test_erroneous_cli_input_errors():
-    exitcode, out, err = run_rpmdeplint(["rpmdeplint", "list-deps", "--derp"])
+    exitcode, _, _ = run_rpmdeplint(["rpmdeplint", "list-deps", "--derp"])
 
     assert exitcode == 2
 
@@ -143,7 +143,7 @@ def test_handles_invalid_rpm_without_crashing(request, dir_server, tmpdir):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "list-deps",

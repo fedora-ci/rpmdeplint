@@ -65,7 +65,7 @@ def test_finds_all_problems(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         ["rpmdeplint", "check", f"--repo=base,{dir_server.url}"]
         + [p.get_built_rpm("i386") for p in test_packages]
     )
@@ -103,7 +103,7 @@ def test_guesses_arch_when_combined_with_noarch_package(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check",
@@ -187,7 +187,7 @@ def test_cache_doesnt_grow_unboundedly(request, dir_server):
 
     request.addfinalizer(cleanup)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, _ = run_rpmdeplint(
         [
             "rpmdeplint",
             "check",
@@ -217,7 +217,7 @@ def test_cache_doesnt_grow_unboundedly(request, dir_server):
     # ensure time period of cache has expired
     time.sleep(2)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, _ = run_rpmdeplint(
         [
             "rpmdeplint",
             "check",
@@ -249,7 +249,7 @@ def test_prints_error_on_repo_download_failure(request):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check",
@@ -282,7 +282,7 @@ def test_prints_error_on_repodata_file_download_failure(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check",
