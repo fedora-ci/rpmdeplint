@@ -27,7 +27,7 @@ def test_finds_newer_version_in_repo(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-upgrade",
@@ -61,7 +61,7 @@ def test_finds_obsoleting_package_in_repo(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-upgrade",
@@ -94,7 +94,7 @@ def test_epoch(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-upgrade",

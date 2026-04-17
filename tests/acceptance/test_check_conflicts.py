@@ -38,7 +38,7 @@ def test_finds_undeclared_file_conflict(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-conflicts",
@@ -76,7 +76,7 @@ def test_finds_undeclared_file_conflict_with_repo_on_local_filesystem(request):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-conflicts",
@@ -115,7 +115,7 @@ def test_package_does_not_conflict_with_earlier_version_of_itself(request, dir_s
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, _ = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-conflicts",
@@ -155,7 +155,7 @@ def test_conflict_is_ignored_for_rpm_level_conflicts(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, _ = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-conflicts",
@@ -193,7 +193,7 @@ def test_conflict_is_ignored_if_files_match(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, _ = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-conflicts",
@@ -249,7 +249,7 @@ def test_conflict_not_ignored_if_contents_match_but_perms_differ(request, dir_se
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-conflicts",
@@ -306,7 +306,7 @@ def test_conflict_is_ignored_if_file_colors_are_different(request, dir_server):
     assert rpm.files(rpmheader_32)["/usr/bin/thing"].color == 1
     assert rpm.files(rpmheader_64)["/usr/bin/thing"].color == 2
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, _ = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-conflicts",
@@ -339,7 +339,7 @@ def test_does_not_fail_with_signed_rpms(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         ["rpmdeplint", "check-conflicts", f"--repo=base,{dir_server.url}", p1]
     )
     assert exitcode == 3
@@ -423,7 +423,7 @@ def test_finds_conflicts_in_installonly_packages(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-conflicts",
@@ -473,7 +473,7 @@ def test_finds_conflict_against_older_subpackage(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-conflicts",
@@ -529,7 +529,7 @@ def test_obeys_xml_base_when_downloading_packages(request, tmpdir, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, _ = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-conflicts",

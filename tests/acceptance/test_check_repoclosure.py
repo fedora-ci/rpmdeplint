@@ -34,7 +34,7 @@ def test_catches_soname_change(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-repoclosure",
@@ -73,7 +73,7 @@ def test_catches_soname_change_with_package_rename(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-repoclosure",
@@ -107,7 +107,7 @@ def test_ignores_dependency_problems_in_packages_under_test(request, dir_server)
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-repoclosure",
@@ -147,7 +147,7 @@ def test_ignores_problems_in_older_packages(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, _ = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-repoclosure",
@@ -186,7 +186,7 @@ def test_ignores_problems_in_obsoleted_packages(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, _ = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-repoclosure",
@@ -217,7 +217,7 @@ def test_warns_on_preexisting_repoclosure_problems(request, dir_server):
 
     request.addfinalizer(cleanUp)
 
-    exitcode, out, err = run_rpmdeplint(
+    exitcode, _, err = run_rpmdeplint(
         [
             "rpmdeplint",
             "check-repoclosure",
