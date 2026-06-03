@@ -1,13 +1,19 @@
 Changelog
 ---------
 
-dev
+2.1
 ~~~~~~
 
 * Exclude dirs known to be owned by many packages from conflict checking.
 * If check-upgrade finds a package upgradable by its modular version, skip it.
 * Make it possible to run rpmdeplint as a library.
 * Skip modular packages when checking for conflicts.
+* Add ``--allconflicts`` option to ``check-conflicts`` and ``check`` to always
+  check all remote packages for each potentially-conflicting filename, rather
+  than stopping after the first one (avoids hiding problems at the cost of
+  more bandwidth).
+* Optimize conflict checking by iterating the package pool only once instead of
+  once per package under test.
 
 2.0
 ~~~~~~
