@@ -420,6 +420,12 @@ class DependencyAnalyzer:
         """
         problems = []
 
+        # This selection matches packages obsoleted by our packages under test
+        obsoleted = self._select_obsoleted_by(self.solvables).solvables()
+        logger.debug(
+            "Excluding the following obsoleted packages:\n%s",
+            "\n".join(f"  {s}" for s in obsoleted),
+        )
         # Collect files from packages under test
         test_solvable_files: dict[XSolvable, set[str]] = {}
         all_test_files: set[str] = set()
@@ -448,6 +454,11 @@ class DependencyAnalyzer:
         pool_overlapping: dict[XSolvable, frozenset[str]] = {}
         for pool_solvable in self.pool.solvables_iter():
             if ".module" in pool_solvable.evr:
+                continue
+            if pool_solvable in obsoleted:
+                # we don't want to report "conflicts" in packages that will
+                # be replaced by packages from the set under test
+                # https://github.com/fedora-ci/rpmdeplint/issues/34
                 continue
             if overlap := self._files_in_solvable(pool_solvable) & all_test_files:
                 pool_overlapping[pool_solvable] = frozenset(overlap)
